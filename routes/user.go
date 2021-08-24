@@ -1882,23 +1882,6 @@ func (fes *APIServer) GetNotifications(ww http.ResponseWriter, req *http.Request
 		postEntryResponses[postHashHex] = postEntryResponse
 	}
 
-	hasMedia := func(postHashHex string) bool {
-	     postHashBytes, err := hex.DecodeString(postHashHex)
-	     if err != nil || len(postHashBytes) != lib.HashSizeBytes {
-	     	return false
-	     }
-	     postHash := &lib.BlockHash{}
-	     copy(postHash[:], postHashBytes)
-
-	     postEntry := utxoView.GetPostEntryForPostHash(postHash)
-
-	     if postEntry == nil {
-	     	return false
-	     }
-
-	     return postEntry.HasMedia()
-	}
-
 	for _, txnMeta := range filteredTxnMetadataList {
 		postMetadata := txnMeta.Metadata.SubmitPostTxindexMetadata
 		likeMetadata := txnMeta.Metadata.LikeTxindexMetadata
@@ -1907,10 +1890,10 @@ func (fes *APIServer) GetNotifications(ww http.ResponseWriter, req *http.Request
 		acceptNFTBidMetadata := txnMeta.Metadata.AcceptNFTBidTxindexMetadata
 		basicTransferMetadata := txnMeta.Metadata.BasicTransferTxindexMetadata
 
-		if postMetadata != nil && (hasMedia(postMetadata.ParentPostHashHex) || hasMedia(postMetadata.PostHashBeingModifiedHex)) {
+		if postMetadata != nil {
 			addPostForHash(postMetadata.PostHashBeingModifiedHex, userPublicKeyBytes)
 			addPostForHash(postMetadata.ParentPostHashHex, userPublicKeyBytes)
-		} else if likeMetadata != nil && hasMedia(likeMetadata.PostHashHex){
+		} else if likeMetadata != nil {
 			addPostForHash(likeMetadata.PostHashHex, userPublicKeyBytes)
 		} else if transferCreatorCoinMetadata != nil {
 			if transferCreatorCoinMetadata.PostHashHex != "" {
