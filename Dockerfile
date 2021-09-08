@@ -17,11 +17,15 @@ WORKDIR /bitclout/src/backend
 RUN go mod download
 
 # include backend src
-COPY backend/config  config
-COPY backend/cmd     cmd
-COPY backend/miner   miner
-COPY backend/routes  routes
-COPY backend/main.go .
+COPY backend/config     config
+COPY backend/cmd        cmd
+COPY backend/dataloader dataloader
+COPY backend/globaldb   globaldb
+COPY backend/graph      graph
+COPY backend/migrate    migrate
+COPY backend/miner      miner
+COPY backend/routes     routes
+COPY backend/main.go    .
 
 # include core src
 COPY core/clouthash ../core/clouthash
