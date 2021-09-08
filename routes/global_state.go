@@ -232,6 +232,19 @@ type UserMetadata struct {
 	// JumioShouldCompProfileCreation = True if we should comp the create profile fee because the user went through the
 	// Jumio flow.
 	JumioShouldCompProfileCreation bool
+	
+	// User must complete tutorial if they have been jumio verified.
+	MustCompleteTutorial bool
+
+	// If user is featured as a well known creator in the tutorial.
+	IsFeaturedTutorialWellKnownCreator bool
+	// If user is featured as an up and coming creator in the tutorial.
+	// Note: a user should not be both featured as well known and up and coming
+	IsFeaturedTutorialUpAndComingCreator bool
+
+	TutorialStatus TutorialStatus
+	CreatorPurchasedInTutorialPKID *lib.PKID
+	CreatorCoinsPurchasedInTutorial uint64
 	// MustPurchaseCreatorCoin = set to true if a user gets money from Jumio or Twilio flow and prevents user from
 	// performing a basic transfer before purchasing a creator coin.
 	MustPurchaseCreatorCoin bool
