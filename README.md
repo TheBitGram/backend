@@ -1,3 +1,4 @@
+# kick 1
 ![BitClout Logo](https://bitclout.com/assets/img/camelcase_logo.svg)
 
 # About BitClout
