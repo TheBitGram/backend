@@ -3,7 +3,7 @@ replicaCount: ${replica_count}
 fullnameOverride: ${fullnameOverride}
 namespace: ${namespace}
 
-# kick 1
+# kick 2
 
 # containerSpecOptions:
 #   securityContext:
