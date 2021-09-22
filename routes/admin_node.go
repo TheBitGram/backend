@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/bitclout/core/lib"
 	"github.com/btcsuite/btcd/btcec"
 )
 
@@ -65,13 +65,13 @@ type PeerResponse struct {
 
 // NodeControlResponse ...
 type NodeControlResponse struct {
-	// The current status the DeSo node is at in terms of syncing the DeSo
+	// The current status the BitClout node is at in terms of syncing the BitClout
 	// chain.
-	DeSoStatus *NodeStatusResponse
+	BitCloutStatus *NodeStatusResponse
 
-	DeSoOutboundPeers    []*PeerResponse
-	DeSoInboundPeers     []*PeerResponse
-	DeSoUnconnectedPeers []*PeerResponse
+	BitCloutOutboundPeers    []*PeerResponse
+	BitCloutInboundPeers     []*PeerResponse
+	BitCloutUnconnectedPeers []*PeerResponse
 
 	MinerPublicKeys []string
 }
@@ -97,93 +97,93 @@ func (fes *APIServer) _handleNodeControlGetInfo(
 	requestData *NodeControlRequest, ww http.ResponseWriter) {
 
 	// Set some fields we'll need to use down below.
-	desoChainState := fes.blockchain.ChainState()
-	desoHeaderTip := fes.blockchain.HeaderTip()
-	desoBlockTip := fes.blockchain.BlockTip()
+	bitcloutChainState := fes.blockchain.ChainState()
+	bitcloutHeaderTip := fes.blockchain.HeaderTip()
+	bitcloutBlockTip := fes.blockchain.BlockTip()
 
-	// Compute the fields for the DeSo NodeStatusResponse
-	desoNodeStatus := &NodeStatusResponse{}
-	desoNodeStatus.State = desoChainState.String()
+	// Compute the fields for the BitClout NodeStatusResponse
+	bitcloutNodeStatus := &NodeStatusResponse{}
+	bitcloutNodeStatus.State = bitcloutChainState.String()
 
 	// Main header chain fields
 	{
-		desoNodeStatus.LatestHeaderHeight = desoHeaderTip.Height
-		desoNodeStatus.LatestHeaderHash = hex.EncodeToString(desoHeaderTip.Hash[:])
-		desoNodeStatus.LatestHeaderTstampSecs = uint32(desoHeaderTip.Header.TstampSecs)
+		bitcloutNodeStatus.LatestHeaderHeight = bitcloutHeaderTip.Height
+		bitcloutNodeStatus.LatestHeaderHash = hex.EncodeToString(bitcloutHeaderTip.Hash[:])
+		bitcloutNodeStatus.LatestHeaderTstampSecs = uint32(bitcloutHeaderTip.Header.TstampSecs)
 	}
 	// Main block chain fields
 	{
-		desoNodeStatus.LatestBlockHeight = desoBlockTip.Height
-		desoNodeStatus.LatestBlockHash = hex.EncodeToString(desoBlockTip.Hash[:])
-		desoNodeStatus.LatestBlockTstampSecs = uint32(desoBlockTip.Header.TstampSecs)
+		bitcloutNodeStatus.LatestBlockHeight = bitcloutBlockTip.Height
+		bitcloutNodeStatus.LatestBlockHash = hex.EncodeToString(bitcloutBlockTip.Hash[:])
+		bitcloutNodeStatus.LatestBlockTstampSecs = uint32(bitcloutBlockTip.Header.TstampSecs)
 	}
 	if fes.TXIndex != nil {
 		// TxIndex status
-		desoNodeStatus.LatestTxIndexHeight = fes.TXIndex.TXIndexChain.BlockTip().Height
+		bitcloutNodeStatus.LatestTxIndexHeight = fes.TXIndex.TXIndexChain.BlockTip().Height
 	}
 	// We only have headers remaining if we're in this state.
-	if desoChainState == lib.SyncStateSyncingHeaders {
-		desoNodeStatus.HeadersRemaining = uint32(
-			(time.Now().Unix() - int64(desoNodeStatus.LatestHeaderTstampSecs)) /
+	if bitcloutChainState == lib.SyncStateSyncingHeaders {
+		bitcloutNodeStatus.HeadersRemaining = uint32(
+			(time.Now().Unix() - int64(bitcloutNodeStatus.LatestHeaderTstampSecs)) /
 				int64(fes.Params.TimeBetweenBlocks.Seconds()))
 	}
 	// We only have blocks remaining if we're in one of the following states.
-	if desoChainState == lib.SyncStateSyncingHeaders ||
-		desoChainState == lib.SyncStateSyncingBlocks ||
-		desoChainState == lib.SyncStateNeedBlocksss {
+	if bitcloutChainState == lib.SyncStateSyncingHeaders ||
+		bitcloutChainState == lib.SyncStateSyncingBlocks ||
+		bitcloutChainState == lib.SyncStateNeedBlocksss {
 
-		desoNodeStatus.BlocksRemaining = desoHeaderTip.Height - desoBlockTip.Height
+		bitcloutNodeStatus.BlocksRemaining = bitcloutHeaderTip.Height - bitcloutBlockTip.Height
 	}
 
 	// Get and sort the peers so we have a consistent ordering.
-	allDeSoPeers := fes.backendServer.GetConnectionManager().GetAllPeers()
-	sort.Slice(allDeSoPeers, func(ii, jj int) bool {
+	allBitCloutPeers := fes.backendServer.GetConnectionManager().GetAllPeers()
+	sort.Slice(allBitCloutPeers, func(ii, jj int) bool {
 		// Use a hash to get a random but deterministic ordering.
-		return allDeSoPeers[ii].Address() < allDeSoPeers[jj].Address()
+		return allBitCloutPeers[ii].Address() < allBitCloutPeers[jj].Address()
 	})
 
 	// Rack up the inbound and outbound peers from the connection manager.
-	desoOutboundPeers := []*PeerResponse{}
-	desoInboundPeers := []*PeerResponse{}
-	desoUnconnectedPeers := []*PeerResponse{}
-	existingDeSoPeers := make(map[string]bool)
+	bitcloutOutboundPeers := []*PeerResponse{}
+	bitcloutInboundPeers := []*PeerResponse{}
+	bitcloutUnconnectedPeers := []*PeerResponse{}
+	existingBitCloutPeers := make(map[string]bool)
 	syncPeer := fes.backendServer.SyncPeer
-	for _, desoPeer := range allDeSoPeers {
+	for _, bitcloutPeer := range allBitCloutPeers {
 		isSyncPeer := false
-		if syncPeer != nil && (desoPeer.String() == syncPeer.String()) {
+		if syncPeer != nil && (bitcloutPeer.String() == syncPeer.String()) {
 			isSyncPeer = true
 		}
 		currentPeerRes := &PeerResponse{
-			IP:           desoPeer.IP(),
-			ProtocolPort: desoPeer.Port(),
+			IP:           bitcloutPeer.IP(),
+			ProtocolPort: bitcloutPeer.Port(),
 			IsSyncPeer:   isSyncPeer,
 		}
-		if desoPeer.IsOutbound() {
-			desoOutboundPeers = append(desoOutboundPeers, currentPeerRes)
+		if bitcloutPeer.IsOutbound() {
+			bitcloutOutboundPeers = append(bitcloutOutboundPeers, currentPeerRes)
 		} else {
-			desoInboundPeers = append(desoInboundPeers, currentPeerRes)
+			bitcloutInboundPeers = append(bitcloutInboundPeers, currentPeerRes)
 		}
 
-		existingDeSoPeers[currentPeerRes.IP+fmt.Sprintf(":%d", currentPeerRes.ProtocolPort)] = true
+		existingBitCloutPeers[currentPeerRes.IP+fmt.Sprintf(":%d", currentPeerRes.ProtocolPort)] = true
 	}
-	// Return some deso addrs from the addr manager.
-	desoAddrs := fes.backendServer.GetConnectionManager().GetAddrManager().AddressCache()
-	sort.Slice(desoAddrs, func(ii, jj int) bool {
+	// Return some bitclout addrs from the addr manager.
+	bitcloutAddrs := fes.backendServer.GetConnectionManager().GetAddrManager().AddressCache()
+	sort.Slice(bitcloutAddrs, func(ii, jj int) bool {
 		// Use a hash to get a random but deterministic ordering.
-		hashI := string(lib.Sha256DoubleHash([]byte(desoAddrs[ii].IP.String() + fmt.Sprintf(":%d", desoAddrs[ii].Port)))[:])
-		hashJ := string(lib.Sha256DoubleHash([]byte(desoAddrs[jj].IP.String() + fmt.Sprintf(":%d", desoAddrs[jj].Port)))[:])
+		hashI := string(lib.Sha256DoubleHash([]byte(bitcloutAddrs[ii].IP.String() + fmt.Sprintf(":%d", bitcloutAddrs[ii].Port)))[:])
+		hashJ := string(lib.Sha256DoubleHash([]byte(bitcloutAddrs[jj].IP.String() + fmt.Sprintf(":%d", bitcloutAddrs[jj].Port)))[:])
 
 		return hashI < hashJ
 	})
-	for _, netAddr := range desoAddrs {
-		if len(desoUnconnectedPeers) >= 250 {
+	for _, netAddr := range bitcloutAddrs {
+		if len(bitcloutUnconnectedPeers) >= 250 {
 			break
 		}
 		addr := netAddr.IP.String() + fmt.Sprintf(":%d", netAddr.Port)
-		if _, exists := existingDeSoPeers[addr]; exists {
+		if _, exists := existingBitCloutPeers[addr]; exists {
 			continue
 		}
-		desoUnconnectedPeers = append(desoUnconnectedPeers, &PeerResponse{
+		bitcloutUnconnectedPeers = append(bitcloutUnconnectedPeers, &PeerResponse{
 			IP:           netAddr.IP.String(),
 			ProtocolPort: netAddr.Port,
 			// Unconnected peers are not sync peers so leave it set to false.
@@ -198,11 +198,11 @@ func (fes *APIServer) _handleNodeControlGetInfo(
 	}
 
 	res := NodeControlResponse{
-		DeSoStatus: desoNodeStatus,
+		BitCloutStatus: bitcloutNodeStatus,
 
-		DeSoOutboundPeers:    desoOutboundPeers,
-		DeSoInboundPeers:     desoInboundPeers,
-		DeSoUnconnectedPeers: desoUnconnectedPeers,
+		BitCloutOutboundPeers:    bitcloutOutboundPeers,
+		BitCloutInboundPeers:     bitcloutInboundPeers,
+		BitCloutUnconnectedPeers: bitcloutUnconnectedPeers,
 
 		MinerPublicKeys: minerPublicKeyStrs,
 	}
@@ -212,12 +212,12 @@ func (fes *APIServer) _handleNodeControlGetInfo(
 	}
 }
 
-func (fes *APIServer) _handleConnectDeSoNode(
+func (fes *APIServer) _handleConnectBitCloutNode(
 	ww http.ResponseWriter, ip string, protocolPort uint16) {
 
 	// Don't connect to the peer if we're already aware of them.
-	for _, desoPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
-		if strings.Contains(desoPeer.Address(), ip+fmt.Sprintf(":%d", protocolPort)) {
+	for _, bitcloutPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
+		if strings.Contains(bitcloutPeer.Address(), ip+fmt.Sprintf(":%d", protocolPort)) {
 			_AddBadRequestError(ww, fmt.Sprintf("You are already connected to peer %s:%d", ip, protocolPort))
 			return
 		}
@@ -241,7 +241,7 @@ func (fes *APIServer) _handleConnectDeSoNode(
 	go func() {
 		netAddr, err := fes.backendServer.GetConnectionManager().GetAddrManager().HostToNetAddress(ip, protocolPort, 0)
 		if err != nil {
-			_AddBadRequestError(ww, fmt.Sprintf("_handleConnectDeSoNode: Cannot connect to node %s:%d: %v", ip, protocolPort, err))
+			_AddBadRequestError(ww, fmt.Sprintf("_handleConnectBitCloutNode: Cannot connect to node %s:%d: %v", ip, protocolPort, err))
 			return
 		}
 		fes.backendServer.GetConnectionManager().ConnectPeer(nil, netAddr)
@@ -249,8 +249,8 @@ func (fes *APIServer) _handleConnectDeSoNode(
 		// Spin until the peer shows up in the connection manager or until 100 iterations.
 		// Note the pause between each iteration.
 		for ii := 0; ii < 100; ii++ {
-			for _, desoPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
-				if !strings.Contains(desoPeer.Address(), ip+fmt.Sprintf(":%d", protocolPort)) {
+			for _, bitcloutPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
+				if !strings.Contains(bitcloutPeer.Address(), ip+fmt.Sprintf(":%d", protocolPort)) {
 					continue
 				}
 				// If we get here it means we're dealing with the peer we just connected to.
@@ -263,13 +263,13 @@ func (fes *APIServer) _handleConnectDeSoNode(
 				// Grab the ChainLock since we might do a blockchain lookup below.
 				locator := fes.blockchain.LatestLocator(fes.blockchain.HeaderTip())
 
-				desoPeer.AddDeSoMessage(&lib.MsgDeSoGetHeaders{
+				bitcloutPeer.AddBitCloutMessage(&lib.MsgBitCloutGetHeaders{
 					StopHash:     &lib.BlockHash{},
 					BlockLocator: locator,
 				}, false)
 
 				// After sending GetHeaders above, make the peer the syncPeer.
-				fes.backendServer.SyncPeer = desoPeer
+				fes.backendServer.SyncPeer = bitcloutPeer
 
 				// At this point the peer shoud be connected. Add their address to the addrmgr
 				// in case the user wants to connect again in the future. Set the source to be
@@ -299,15 +299,15 @@ func (fes *APIServer) _handleConnectDeSoNode(
 	}
 }
 
-func (fes *APIServer) _handleDisconnectDeSoNode(
+func (fes *APIServer) _handleDisconnectBitCloutNode(
 	ww http.ResponseWriter, ip string, port uint16) {
 
 	// Get all the peers from the connection manager and try and find one
 	// that has a matching IP.
 	var peerFound *lib.Peer
-	for _, desoPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
-		if strings.Contains(desoPeer.Address(), ip+fmt.Sprintf(":%d", port)) {
-			peerFound = desoPeer
+	for _, bitcloutPeer := range fes.backendServer.GetConnectionManager().GetAllPeers() {
+		if strings.Contains(bitcloutPeer.Address(), ip+fmt.Sprintf(":%d", port)) {
+			peerFound = bitcloutPeer
 			break
 		}
 	}
@@ -349,8 +349,8 @@ func (fes *APIServer) NodeControl(ww http.ResponseWriter, req *http.Request) {
 
 	allowedOperationTypes := make(map[string]bool)
 	allowedOperationTypes["get_info"] = true
-	allowedOperationTypes["connect_deso_node"] = true
-	allowedOperationTypes["disconnect_deso_node"] = true
+	allowedOperationTypes["connect_bitclout_node"] = true
+	allowedOperationTypes["disconnect_bitclout_node"] = true
 	allowedOperationTypes["update_miner"] = true
 
 	if _, isOperationTypeAllowed := allowedOperationTypes[requestData.OperationType]; !isOperationTypeAllowed {
@@ -364,14 +364,14 @@ func (fes *APIServer) NodeControl(ww http.ResponseWriter, req *http.Request) {
 		fes._handleNodeControlGetInfo(&requestData, ww)
 		return
 
-	} else if requestData.OperationType == "connect_deso_node" {
+	} else if requestData.OperationType == "connect_bitclout_node" {
 		ip, port := parseIPAndPort(requestData.Address)
-		fes._handleConnectDeSoNode(ww, ip, port)
+		fes._handleConnectBitCloutNode(ww, ip, port)
 		return
 
-	} else if requestData.OperationType == "disconnect_deso_node" {
+	} else if requestData.OperationType == "disconnect_bitclout_node" {
 		ip, port := parseIPAndPort(requestData.Address)
-		fes._handleDisconnectDeSoNode(ww, ip, port)
+		fes._handleDisconnectBitCloutNode(ww, ip, port)
 		return
 
 	} else if requestData.OperationType == "update_miner" {

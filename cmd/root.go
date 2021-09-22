@@ -16,7 +16,7 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "backend",
-	Short: "DeSo node with backend server",
+	Short: "BitClout node with backend server",
 	Long:  `...`,
 }
 

@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bitclout/backend/config"
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/deso-protocol/backend/config"
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/tyler-smith/go-bip39"
 
-	"github.com/deso-protocol/core/lib"
+	"github.com/bitclout/core/lib"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/golang/glog"
 	"github.com/kevinburke/twilio-go"
@@ -45,7 +45,7 @@ const (
 	RoutePathSubmitTransaction        = "/api/v0/submit-transaction"
 	RoutePathUpdateProfile            = "/api/v0/update-profile"
 	RoutePathExchangeBitcoin          = "/api/v0/exchange-bitcoin"
-	RoutePathSendDeSo             = "/api/v0/send-deso"
+	RoutePathSendBitClout             = "/api/v0/send-bitclout"
 	RoutePathSubmitPost               = "/api/v0/submit-post"
 	RoutePathCreateFollowTxnStateless = "/api/v0/create-follow-txn-stateless"
 	RoutePathCreateLikeStateless      = "/api/v0/create-like-stateless"
@@ -74,8 +74,8 @@ const (
 	RoutePathGetSinglePost           = "/api/v0/get-single-post"
 	RoutePathGetLikesForPost         = "/api/v0/get-likes-for-post"
 	RoutePathGetDiamondsForPost      = "/api/v0/get-diamonds-for-post"
-	RoutePathGetRepostsForPost      = "/api/v0/get-reposts-for-post"
-	RoutePathGetQuoteRepostsForPost = "/api/v0/get-quote-reposts-for-post"
+	RoutePathGetRecloutsForPost      = "/api/v0/get-reclouts-for-post"
+	RoutePathGetQuoteRecloutsForPost = "/api/v0/get-quote-reclouts-for-post"
 	RoutePathGetPostsForPublicKey    = "/api/v0/get-posts-for-public-key"
 	RoutePathGetDiamondedPosts       = "/api/v0/get-diamonded-posts"
 
@@ -140,11 +140,11 @@ const (
 	RoutePathNodeControl          = "/api/v0/admin/node-control"
 	RoutePathAdminGetMempoolStats = "/api/v0/admin/get-mempool-stats"
 
-	// admin_buy_deso.go
-	RoutePathSetUSDCentsToDeSoReserveExchangeRate = "/api/v0/admin/set-usd-cents-to-deso-reserve-exchange-rate"
-	RoutePathGetUSDCentsToDeSoReserveExchangeRate = "/api/v0/admin/get-usd-cents-to-deso-reserve-exchange-rate"
-	RoutePathSetBuyDeSoFeeBasisPoints             = "/api/v0/admin/set-buy-deso-fee-basis-points"
-	RoutePathGetBuyDeSoFeeBasisPoints             = "/api/v0/admin/get-buy-deso-fee-basis-points"
+	// admin_buy_bitclout.go
+	RoutePathSetUSDCentsToBitCloutReserveExchangeRate = "/api/v0/admin/set-usd-cents-to-bitclout-reserve-exchange-rate"
+	RoutePathGetUSDCentsToBitCloutReserveExchangeRate = "/api/v0/admin/get-usd-cents-to-bitclout-reserve-exchange-rate"
+	RoutePathSetBuyBitCloutFeeBasisPoints             = "/api/v0/admin/set-buy-bitclout-fee-basis-points"
+	RoutePathGetBuyBitCloutFeeBasisPoints             = "/api/v0/admin/get-buy-bitclout-fee-basis-points"
 
 	// admin_transaction.go
 	RoutePathGetGlobalParams = "/api/v0/get-global-params"
@@ -174,7 +174,7 @@ const (
 
 	// admin_jumio.go
 	RoutePathAdminResetJumioForPublicKey = "/api/v0/admin/reset-jumio-for-public-key"
-	RoutePathAdminUpdateJumioDeSo    = "/api/v0/admin/update-jumio-deso"
+	RoutePathAdminUpdateJumioBitClout    = "/api/v0/admin/update-jumio-bitclout"
 	RoutePathAdminJumioCallback          = "/api/v0/admin/jumio-callback"
 
 	// admin_referrals.go
@@ -196,13 +196,13 @@ const (
 
 // APIServer provides the interface between the blockchain and things like the
 // web UI. In particular, it exposes a JSON API that can be used to do everything the
-// frontend cares about, from posts to profiles to purchasing DeSo with Bitcoin.
+// frontend cares about, from posts to profiles to purchasing BitClout with Bitcoin.
 type APIServer struct {
 	backendServer *lib.Server
-	mempool       *lib.DeSoMempool
+	mempool       *lib.BitCloutMempool
 	blockchain    *lib.Blockchain
-	blockProducer *lib.DeSoBlockProducer
-	Params        *lib.DeSoParams
+	blockProducer *lib.BitCloutBlockProducer
+	Params        *lib.BitCloutParams
 	Config        *config.Config
 
 	MinFeeRateNanosPerKB uint64
@@ -225,18 +225,18 @@ type APIServer struct {
 	// transactions.
 	BlockCypherAPIKey string
 
-	// This lock is used when sending seed DeSo to avoid a race condition
-	// in which two calls to sending the seed DeSo use the same UTXO,
+	// This lock is used when sending seed BitClout to avoid a race condition
+	// in which two calls to sending the seed BitClout use the same UTXO,
 	// causing one to error.
-	mtxSeedDeSo sync.RWMutex
+	mtxSeedBitClout sync.RWMutex
 
-	UsdCentsPerDeSoExchangeRate    uint64
-	UsdCentsPerBitCoinExchangeRate float64
-	UsdCentsPerETHExchangeRate     uint64
+	UsdCentsPerBitCloutExchangeRate uint64
+	UsdCentsPerBitCoinExchangeRate  float64
+	UsdCentsPerETHExchangeRate      uint64
 
 	// List of prices retrieved.  This is culled everytime we update the current price.
-	LastTradeDeSoPriceHistory []LastTradePriceHistoryItem
-	// How far back do we consider trade prices when we set the current price of $DESO in nanoseconds
+	LastTradeBitCloutPriceHistory []LastTradePriceHistoryItem
+	// How far back do we consider trade prices when we set the current price of $CLOUT in nanoseconds
 	LastTradePriceLookback uint64
 
 	// Base-58 prefix to check for to determine if a string could be a public key.
@@ -254,11 +254,11 @@ type LastTradePriceHistoryItem struct {
 // NewAPIServer ...
 func NewAPIServer(
 	_backendServer *lib.Server,
-	_mempool *lib.DeSoMempool,
+	_mempool *lib.BitCloutMempool,
 	_blockchain *lib.Blockchain,
-	_blockProducer *lib.DeSoBlockProducer,
+	_blockProducer *lib.BitCloutBlockProducer,
 	txIndex *lib.TXIndex,
-	params *lib.DeSoParams,
+	params *lib.BitCloutParams,
 	config *config.Config,
 	minFeeRateNanosPerKB uint64,
 	globalStateDB *badger.DB,
@@ -288,18 +288,18 @@ func NewAPIServer(
 		GlobalStateDB:                 globalStateDB,
 		Twilio:                        twilio,
 		BlockCypherAPIKey:             blockCypherAPIKey,
-		LastTradeDeSoPriceHistory: []LastTradePriceHistoryItem{},
+		LastTradeBitCloutPriceHistory: []LastTradePriceHistoryItem{},
 		PublicKeyBase58Prefix:         publicKeyBase58Prefix,
-		// We consider last trade prices from the last hour when determining the current price of DeSo.
-		// This helps prevents attacks that attempt to purchase $DESO at below market value.
+		// We consider last trade prices from the last hour when determining the current price of BitClout.
+		// This helps prevents attacks that attempt to purchase $CLOUT at below market value.
 		LastTradePriceLookback: uint64(time.Hour.Nanoseconds()),
 		quit:                   make(chan struct{}),
 	}
 
 	fes.StartSeedBalancesMonitoring()
 
-	// Call this once upon starting server to ensure we have a good initial value
-	fes.UpdateUSDCentsToDeSoExchangeRate()
+	// Call these once upon starting server to ensure we have a good initial value
+	fes.UpdateUSDCentsToBitCloutExchangeRate()
 	fes.UpdateUSDToBTCPrice()
 	fes.UpdateUSDToETHPrice()
 
@@ -363,15 +363,15 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			fes.GetGlobalParams,
 			PublicAccess,
 		},
-		// Route for sending DeSo
+		// Route for sending BitClout
 		{
-			"SendDeSo",
+			"SendBitClout",
 			[]string{"POST", "OPTIONS"},
-			RoutePathSendDeSo,
-			fes.SendDeSo,
+			RoutePathSendBitClout,
+			fes.SendBitClout,
 			PublicAccess,
 		},
-		// Route for exchanging Bitcoin for DeSo
+		// Route for exchanging Bitcoin for BitClout
 		{
 			"ExchangeBitcoin",
 			[]string{"POST", "OPTIONS"},
@@ -399,7 +399,7 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 		},
 		// Endpoint to trigger granting a user a verified badge
 
-		// The new DeSo endpoints start here.
+		// The new BitClout endpoints start here.
 		{
 			"GetUsersStateless",
 			[]string{"POST", "OPTIONS"},
@@ -950,17 +950,17 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			SuperAdminAccess,
 		},
 		{
-			"SetUSDCentsToDeSoReserveExchangeRate",
+			"SetUSDCentsToBitCloutReserveExchangeRate",
 			[]string{"POST", "OPTIONS"},
-			RoutePathSetUSDCentsToDeSoReserveExchangeRate,
-			fes.SetUSDCentsToDeSoReserveExchangeRate,
+			RoutePathSetUSDCentsToBitCloutReserveExchangeRate,
+			fes.SetUSDCentsToBitCloutReserveExchangeRate,
 			SuperAdminAccess,
 		},
 		{
-			"SetBuyDeSoFeeBasisPoints",
+			"SetBuyBitCloutFeeBasisPoints",
 			[]string{"POST", "OPTIONS"},
-			RoutePathSetBuyDeSoFeeBasisPoints,
-			fes.SetBuyDeSoFeeBasisPoints,
+			RoutePathSetBuyBitCloutFeeBasisPoints,
+			fes.SetBuyBitCloutFeeBasisPoints,
 			SuperAdminAccess,
 		},
 		{
@@ -971,10 +971,10 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			SuperAdminAccess,
 		},
 		{
-			"AdminUpdateJumioDeSo",
+			"AdminUpdateJumioBitClout",
 			[]string{"POST", "OPTIONS"},
-			RoutePathAdminUpdateJumioDeSo,
-			fes.AdminUpdateJumioDeSo,
+			RoutePathAdminUpdateJumioBitClout,
+			fes.AdminUpdateJumioBitClout,
 			SuperAdminAccess,
 		},
 		{
@@ -1027,19 +1027,19 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			SuperAdminAccess,
 		},
 		// End all /admin routes
-		// GET endpoints for managing parameters related to Buying DeSo
+		// GET endpoints for managing parameters related to Buying BitClout
 		{
-			"GetUSDCentsToDeSoReserveExchangeRate",
+			"GetUSDCentsToBitCloutReserveExchangeRate",
 			[]string{"GET"},
-			RoutePathGetUSDCentsToDeSoReserveExchangeRate,
-			fes.GetUSDCentsToDeSoReserveExchangeRate,
+			RoutePathGetUSDCentsToBitCloutReserveExchangeRate,
+			fes.GetUSDCentsToBitCloutReserveExchangeRate,
 			PublicAccess,
 		},
 		{
-			"GetBuyDeSoFeeBasisPoints",
+			"GetBuyBitCloutFeeBasisPoints",
 			[]string{"GET"},
-			RoutePathGetBuyDeSoFeeBasisPoints,
-			fes.GetBuyDeSoFeeBasisPoints,
+			RoutePathGetBuyBitCloutFeeBasisPoints,
+			fes.GetBuyBitCloutFeeBasisPoints,
 			PublicAccess,
 		},
 		{
@@ -1057,17 +1057,17 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
-			"GetRepostsForPost",
+			"GetRecloutsForPost",
 			[]string{"POST", "OPTIONS"},
-			RoutePathGetRepostsForPost,
-			fes.GetRepostsForPost,
+			RoutePathGetRecloutsForPost,
+			fes.GetRecloutsForPost,
 			PublicAccess,
 		},
 		{
-			"GetQuoteRepostsForPost",
+			"GetQuoteRecloutsForPost",
 			[]string{"POST", "OPTIONS"},
-			RoutePathGetQuoteRepostsForPost,
-			fes.GetQuoteRepostsForPost,
+			RoutePathGetQuoteRecloutsForPost,
+			fes.GetQuoteRecloutsForPost,
 			PublicAccess,
 		},
 		{
@@ -1148,7 +1148,7 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 		},
 		{
 			// Make sure you only allow access to Wyre IPs for this endpoint, otherwise anybody can take all the funds from
-			// the public key that sends DeSo. WHITELIST WYRE IPs.
+			// the public key that sends BitClout. WHITELIST WYRE IPs.
 			"WyreWalletOrderSubscription",
 			[]string{"POST", "OPTIONS"},
 			RoutePathWyreWalletOrderSubscription,
@@ -1283,7 +1283,7 @@ func AddHeaders(inner http.Handler, allowedOrigins []string) http.Handler {
 
 		// If this is a POST request, only accept the application/json content type. This should help
 		// mitigate CSRF vulnerabilities (since our CORS policy will reject application/json
-		// POST requests from a non-deso domain)
+		// POST requests from a non-bitclout domain)
 		if invalidPostRequest {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -1461,7 +1461,7 @@ func (fes *APIServer) StartExchangePriceMonitoring() {
 		for {
 			select {
 			case <-time.After(10 * time.Second):
-				fes.UpdateUSDCentsToDeSoExchangeRate()
+				fes.UpdateUSDCentsToBitCloutExchangeRate()
 			case <-fes.quit:
 				break out
 			}
@@ -1493,7 +1493,7 @@ func (fes *APIServer) StartExchangePriceMonitoring() {
 	}()
 }
 
-// Monitor balances for starter deso seed and buy deso seed
+// Monitor balances for starter bitclout seed and buy bitclout seed
 func (fes *APIServer) StartSeedBalancesMonitoring() {
 	go func() {
 	out:
@@ -1504,8 +1504,8 @@ func (fes *APIServer) StartSeedBalancesMonitoring() {
 					return
 				}
 				tags := []string{}
-				fes.logBalanceForSeed(fes.Config.StarterDeSoSeed, "STARTER_DESO", tags)
-				fes.logBalanceForSeed(fes.Config.BuyDeSoSeed, "BUY_DESO", tags)
+				fes.logBalanceForSeed(fes.Config.StarterBitcloutSeed, "STARTER_BITCLOUT", tags)
+				fes.logBalanceForSeed(fes.Config.BuyBitCloutSeed, "BUY_BITCLOUT", tags)
 			case <-fes.quit:
 				break out
 			}

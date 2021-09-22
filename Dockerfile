@@ -4,7 +4,7 @@ RUN apk update
 RUN apk upgrade
 RUN apk add --update go=1.16.8-r0 gcc g++ vips-dev
 
-WORKDIR /deso/src
+WORKDIR /bitclout/src
 
 COPY backend/go.mod backend/
 COPY backend/go.sum backend/
@@ -12,7 +12,7 @@ COPY core/go.mod core/
 COPY core/go.sum core/
 COPY core/third_party/ core/third_party/
 
-WORKDIR /deso/src/backend
+WORKDIR /bitclout/src/backend
 
 RUN go mod download
 
@@ -25,7 +25,7 @@ COPY backend/routes  routes
 COPY backend/main.go .
 
 # include core src
-COPY core/desohash ../core/desohash
+COPY core/clouthash ../core/clouthash
 COPY core/cmd       ../core/cmd
 COPY core/lib       ../core/lib
 COPY core/migrate   ../core/migrate
@@ -38,6 +38,6 @@ FROM alpine:edge
 
 RUN apk add --update vips-dev
 
-COPY --from=backend /deso/src/backend/bin/backend /deso/bin/backend
+COPY --from=backend /bitclout/src/backend/bin/backend /bitclout/bin/backend
 
-ENTRYPOINT ["/deso/bin/backend"]
+ENTRYPOINT ["/bitclout/bin/backend"]

@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/bitclout/core/lib"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcutil"
-	"github.com/deso-protocol/core/lib"
 	"github.com/golang/glog"
 	"io"
 	"io/ioutil"
@@ -18,7 +18,7 @@ import (
 )
 
 func (fes *APIServer) IsConfiguredForETH() bool {
-	return fes.Config.BuyDeSoETHAddress != "" && fes.BlockCypherAPIKey != ""
+	return fes.Config.BuyBitCloutETHAddress != "" && fes.BlockCypherAPIKey != ""
 }
 
 type GetETHBalanceRequest struct {
@@ -122,7 +122,7 @@ type SubmitETHTxRequest struct {
 }
 
 type SubmitETHTxResponse struct {
-	DeSoTxnHash string
+	BitCloutTxnHash string
 }
 
 func (fes *APIServer) SubmitETHTx(ww http.ResponseWriter, req *http.Request) {
@@ -192,7 +192,7 @@ func (fes *APIServer) SubmitETHTx(ww http.ResponseWriter, req *http.Request) {
 	}
 
 	// Verify the deposit address is correct
-	configDepositAddress := strings.ToLower(fes.Config.BuyDeSoETHAddress[2:])
+	configDepositAddress := strings.ToLower(fes.Config.BuyBitCloutETHAddress[2:])
 	txDepositAddress := strings.ToLower(requestData.Tx.Outputs[0].Addresses[0])
 	if configDepositAddress != txDepositAddress {
 		_AddBadRequestError(ww, fmt.Sprintf("SubmitETHTx: Invalid deposit address: %s", txDepositAddress))
@@ -247,8 +247,8 @@ func (fes *APIServer) SubmitETHTx(ww http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Fetch buy DESO basis points fee
-	feeBasisPoints, err := fes.GetBuyDeSoFeeBasisPointsResponseFromGlobalState()
+	// Fetch buy bitclout basis points fee
+	feeBasisPoints, err := fes.GetBuyBitCloutFeeBasisPointsResponseFromGlobalState()
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("SubmitETHTx: Error getting buy fee basis points: %v", err))
 		return
@@ -259,9 +259,9 @@ func (fes *APIServer) SubmitETHTx(ww http.ResponseWriter, req *http.Request) {
 	totalEth := big.NewFloat(0).Quo(totalWei, big.NewFloat(1e18))
 	nanosPurchased := fes.GetNanosFromETH(totalEth, feeBasisPoints)
 
-	desoTxnHash, err := fes.SendSeedDeSo(pkBytes, nanosPurchased, true)
+	bitcloutTxnHash, err := fes.SendSeedBitClout(pkBytes, nanosPurchased, true)
 	if err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("SubmitETHTx: Error sending DESO: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("SubmitETHTx: Error sending BitClout: %v", err))
 		return
 	}
 
@@ -272,7 +272,7 @@ func (fes *APIServer) SubmitETHTx(ww http.ResponseWriter, req *http.Request) {
 	}
 
 	res := SubmitETHTxResponse{
-		DeSoTxnHash: desoTxnHash.String(),
+		BitCloutTxnHash: bitcloutTxnHash.String(),
 	}
 	if err := json.NewEncoder(ww).Encode(res); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("SubmitETHTx: Problem encoding response: %v", err))
@@ -342,7 +342,7 @@ func (fes *APIServer) BlockCypherCreateETHTx(ethAddress string, amount *big.Int)
 		Outputs: []BlockCypherTxOutput{
 			{
 				Addresses: []string{
-					fes.Config.BuyDeSoETHAddress[2:], // Remove the 0x prefix
+					fes.Config.BuyBitCloutETHAddress[2:], // Remove the 0x prefix
 				},
 				Value: amount,
 			},

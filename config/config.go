@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	coreCmd "github.com/deso-protocol/core/cmd"
+	coreCmd "github.com/bitclout/core/cmd"
 	"github.com/spf13/viper"
 	"strconv"
 	"strings"
@@ -13,8 +13,8 @@ type Config struct {
 	APIPort uint16
 
 	// Onboarding
-	StarterDeSoSeed   string
-	StarterDeSoNanos  uint64
+	StarterBitcloutSeed   string
+	StarterBitcloutNanos  uint64
 	StarterPrefixNanosMap map[string]uint64
 	TwilioAccountSID      string
 	TwilioAuthToken       string
@@ -51,10 +51,9 @@ type Config struct {
 	WyreAccountId         string
 	WyreApiKey            string
 	WyreSecretKey         string
-	BuyDeSoBTCAddress string
-	BuyDeSoETHAddress string
-	BuyDeSoSeed       string
-
+	BuyBitCloutBTCAddress string
+	BuyBitCloutETHAddress string
+	BuyBitCloutSeed       string
 
 	// Emails
 	SendgridApiKey         string
@@ -79,8 +78,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	}
 
 	// Onboarding
-	config.StarterDeSoSeed = viper.GetString("starter-deso-seed")
-	config.StarterDeSoNanos = viper.GetUint64("starter-deso-nanos")
+	config.StarterBitcloutSeed = viper.GetString("starter-bitclout-seed")
+	config.StarterBitcloutNanos = viper.GetUint64("starter-bitclout-nanos")
 	starterPrefixNanosMap := viper.GetString("starter-prefix-nanos-map")
 	if len(starterPrefixNanosMap) > 0 {
 		config.StarterPrefixNanosMap = make(map[string]uint64)
@@ -129,14 +128,13 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	config.WyreSecretKey = viper.GetString("wyre-secret-key")
 
 	// BTC address to send all Bitcoin received from Wyre purchases and "Buy With BTC" purchases.
-	config.BuyDeSoBTCAddress = viper.GetString("buy-deso-btc-address")
+	config.BuyBitCloutBTCAddress = viper.GetString("buy-bitclout-btc-address")
 
 	// ETH address to send all ETH received from "Buy With ETH" purchases.
-	config.BuyDeSoETHAddress = viper.GetString("buy-deso-eth-address")
+	config.BuyBitCloutETHAddress = viper.GetString("buy-bitclout-eth-address")
 
-	// Seed from which DeSo will be sent for orders placed through Wyre and "Buy With BTC" purchases"
-	config.BuyDeSoSeed = viper.GetString("buy-deso-seed")
-
+	// Seed from which BitClout will be sent for orders placed through Wyre and "Buy With BTC" purchases"
+	config.BuyBitCloutSeed = viper.GetString("buy-bitclout-seed")
 
 	// Email
 	config.SendgridApiKey = viper.GetString("sendgrid-api-key")
