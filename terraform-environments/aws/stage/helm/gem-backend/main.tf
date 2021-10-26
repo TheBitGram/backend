@@ -91,8 +91,8 @@ data "template_file" "helm_values" {
     pg_hostname       = "foo" # data.terraform_remote_state.rds.outputs.pg_hostname
     pg_port           = "foo" # data.terraform_remote_state.rds.outputs.pg_port
     pg_username       = "foo" # data.terraform_remote_state.rds.outputs.pg_username
-    pg_password = var.pg_password
-    sqs_uri     = var.sqs_uri
+    pg_password       = var.pg_password
+    sqs_uri           = var.sqs_uri
   }
 }
 
