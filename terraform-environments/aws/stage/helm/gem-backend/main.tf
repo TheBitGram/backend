@@ -87,10 +87,10 @@ data "template_file" "helm_values" {
     docker_repository = local.docker_repository
     docker_tag        = local.docker_tag
     requests_memory   = local.requests_memory
-    # pg_name           = data.terraform_remote_state.rds.outputs.pg_name
-    # pg_hostname       = data.terraform_remote_state.rds.outputs.pg_hostname
-    # pg_port           = data.terraform_remote_state.rds.outputs.pg_port
-    # pg_username       = data.terraform_remote_state.rds.outputs.pg_username
+    pg_name           = "foo" # data.terraform_remote_state.rds.outputs.pg_name
+    pg_hostname       = "foo" # data.terraform_remote_state.rds.outputs.pg_hostname
+    pg_port           = "foo" # data.terraform_remote_state.rds.outputs.pg_port
+    pg_username       = "foo" # data.terraform_remote_state.rds.outputs.pg_username
     pg_password = var.pg_password
     sqs_uri     = var.sqs_uri
   }
