@@ -50,33 +50,33 @@ jobs:
       #     username: ${{ secrets.DOCKERHUB_USERNAME }}
       #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Dev AWS build and push
       # Docs: https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
-      - name: Docker meta
+      - name: Dev - Docker meta
         id: meta
         uses: docker/metadata-action@v3
         with:
           # list of Docker images to use as base name for tags
           images: |
             ${{ env.DOCKER_REPOSITORY_NAME_DEV }}
-      - name: Set up QEMU
+      - name: Dev - Set up QEMU
         uses: docker/setup-qemu-action@v1
 
-      - name: Set up Docker Buildx
+      - name: Dev - Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      # Dev AWS build and push
-      - name: Configure AWS credentials
+      - name: Dev - Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR
+      - name: Dev - Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build and push
+      - name: Dev - Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -85,22 +85,22 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Image digest
+      - name: Dev - Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
       # Staging AWS build and push
       # Docs: https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
-      - name: Docker meta
+      - name: Stage - Docker meta
         id: meta-staging
         uses: docker/metadata-action@v3
         with:
           # list of Docker images to use as base name for tags
           images: |
             ${{ env.DOCKER_REPOSITORY_NAME_STAGE }}
-      - name: Set up QEMU
+      - name: Stage - Set up QEMU
         uses: docker/setup-qemu-action@v1
 
-      - name: Set up Docker Buildx
+      - name: Stage - Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -109,11 +109,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGE }}
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR
+      - name: Stage - Login to Amazon ECR
         id: login-ecr-staging
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build and push
+      - name: Stage - Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -122,7 +122,7 @@ jobs:
           tags: ${{ steps.meta-staging.outputs.tags }}
           labels: ${{ steps.meta-staging.outputs.labels }}
 
-      - name: Image digest
+      - name: Stage - Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   ## Deploy to dev
