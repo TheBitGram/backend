@@ -91,7 +91,7 @@ jobs:
       # Staging AWS build and push
       # Docs: https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
       - name: Docker meta
-        id: meta
+        id: meta-staging
         uses: docker/metadata-action@v3
         with:
           # list of Docker images to use as base name for tags
