@@ -119,8 +119,8 @@ jobs:
           context: .
           file: ./backend/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-staging.outputs.tags }}
+          labels: ${{ steps.meta-staging.outputs.labels }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
