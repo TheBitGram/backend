@@ -10,7 +10,7 @@ namespace: ${namespace}
 #     runAsUser: 1000
 #     runAsGroup: 1000
 
-statefulset:
+StatefulSet:
   serviceName: "backend"
   containers:
   - name: ${fullnameOverride}
