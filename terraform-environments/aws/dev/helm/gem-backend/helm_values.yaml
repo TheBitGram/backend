@@ -10,8 +10,7 @@ namespace: ${namespace}
 #     runAsUser: 1000
 #     runAsGroup: 1000
 
-StatefulSet:
-  serviceName: "backend"
+deployment:
   containers:
   - name: ${fullnameOverride}
     image:
@@ -54,17 +53,10 @@ StatefulSet:
       protocol: TCP
       containerPort: 17001
       servicePort: 17001
-    volumeMounts:
-    - name: backend-efs
-      mountPath: /db
 
     resources:
       requests:
         memory: ${requests_memory}
-  volumes:
-    - name: backend-efs
-      persistentVolumeClaim:
-        claimName: backend-efs
 
 ingress:
   enabled: true
