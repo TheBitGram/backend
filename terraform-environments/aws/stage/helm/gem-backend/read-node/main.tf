@@ -5,7 +5,7 @@ locals {
   environment_name  = "stage"
   namespace         = "app-stage"
   fullnameOverride  = "gem-backend-read"
-  replica_count     = 2
+  replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.4"
   requests_memory   = "200Gi"
