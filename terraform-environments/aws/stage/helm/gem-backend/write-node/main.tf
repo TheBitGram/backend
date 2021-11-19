@@ -16,7 +16,7 @@ locals {
     ops_env              = "stage"
     ops_managed_by       = "terraform",
     ops_source_repo      = "kubernetes-ops",
-    ops_source_repo_path = "terraform-environments/aws/stage",
+    ops_source_repo_path = "terraform-environments/aws/stage/write-node/",
     ops_owners           = "example-app",
   }
 }
