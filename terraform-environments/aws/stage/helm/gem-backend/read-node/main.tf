@@ -4,17 +4,18 @@ locals {
   aws_region        = "us-east-1"
   environment_name  = "stage"
   namespace         = "app-stage"
-  fullnameOverride  = "gem-backend"
+  fullnameOverride  = "gem-backend-read"
   replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
-  docker_tag        = "v1.2.3"
-  requests_memory   = "32Gi"
+  docker_tag        = "v1.2.4"
+  requests_memory   = "200Gi"
+  # big boy
 
   tags = {
     ops_env              = "stage"
     ops_managed_by       = "terraform",
     ops_source_repo      = "kubernetes-ops",
-    ops_source_repo_path = "terraform-environments/aws/stage",
+    ops_source_repo_path = "terraform-environments/aws/stage/read-node",
     ops_owners           = "example-app",
   }
 }
@@ -38,7 +39,7 @@ terraform {
     organization = "gem-engineering"
 
     workspaces {
-      name = "kubernetes-ops-stage-gem-backend"
+      name = "kubernetes-ops-stage-gem-backend-read"
     }
   }
 }
