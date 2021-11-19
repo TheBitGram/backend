@@ -9,7 +9,7 @@ locals {
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.3"
   requests_memory   = "32Gi"
-  requests_cpu      = "10"
+  requests_cpu      = "8"
   # mini boy
 
   tags = {
