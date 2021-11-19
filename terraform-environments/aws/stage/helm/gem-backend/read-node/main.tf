@@ -39,7 +39,7 @@ terraform {
     organization = "gem-engineering"
 
     workspaces {
-      name = "kubernetes-ops-stage-gem-backend"
+      name = "kubernetes-ops-stage-gem-backend-read"
     }
   }
 }
