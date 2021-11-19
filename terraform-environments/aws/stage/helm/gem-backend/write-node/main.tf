@@ -101,6 +101,7 @@ data "template_file" "helm_values" {
     docker_repository = local.docker_repository
     docker_tag        = local.docker_tag
     requests_memory   = local.requests_memory
+    requests_cpu      = local.requests_cpu
     pg_name           = "foo" # data.terraform_remote_state.rds.outputs.pg_name
     pg_hostname       = "foo" # data.terraform_remote_state.rds.outputs.pg_hostname
     pg_port           = "foo" # data.terraform_remote_state.rds.outputs.pg_port
