@@ -36,11 +36,11 @@ deployment:
         - name: MIN_FEERATE
           value: "1000"
         - name: STARTER_BITCLOUT_NANOS
-          value: "1000000"
+          value: "1"
         - name: MIN_SATOSHIS_FOR_PROFILE
-          value: "50000"
+          value: "1"
         - name: DATA_DIR
-          value: "/db"
+          value: "/etc/backend-volume"
         - name: SQS_URI
           value: "${sqs_uri}"
       perEnv: [ ]
@@ -57,6 +57,17 @@ deployment:
     resources:
       requests:
         memory: ${requests_memory}
+
+    volumeMounts:
+    # name must match the volume name below
+    - name: backend-efs
+      mountPath: /etc/backend-volume
+
+volumes:
+- name: backend-efs
+  persistentVolumeClaim:
+    claimName: backend-efs
+
 
 ingress:
   enabled: true
