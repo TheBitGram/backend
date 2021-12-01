@@ -57,6 +57,18 @@ deployment:
     resources:
       requests:
         memory: ${requests_memory}
+        cpu: ${requests_cpu}
+
+    volumeMounts:
+    # name must match the volume name below
+    - name: backend-efs
+      mountPath: /etc/backend-volume
+
+volumes:
+- name: backend-efs
+  persistentVolumeClaim:
+    claimName: backend-efs
+
 
     volumeMounts:
     # name must match the volume name below

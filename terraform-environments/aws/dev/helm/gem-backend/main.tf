@@ -9,6 +9,8 @@ locals {
   docker_repository = "067550988196.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.3"
   requests_memory   = "32Gi"
+  requests_cpu      = "7"
+  # mini boy
 
   tags = {
     ops_env              = "dev"
@@ -86,6 +88,7 @@ data "template_file" "helm_values" {
     replica_count     = local.replica_count
     docker_repository = local.docker_repository
     docker_tag        = local.docker_tag
+    requests_cpu      = local.requests_cpu
     requests_memory   = local.requests_memory
     pg_name           = data.terraform_remote_state.rds.outputs.pg_name
     pg_hostname       = data.terraform_remote_state.rds.outputs.pg_hostname
