@@ -399,8 +399,7 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		requestData.NewCreatorBasisPoints,
 		requestData.NewStakeMultipleBasisPoints,
 		requestData.IsHidden,
-		// Temporarily hardcode additional fees to 0
-		0,
+		additionalFees,
 		requestData.MinFeeRateNanosPerKB, fes.backendServer.GetMempool(), additionalOutputs)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem creating transaction: %v", err))
