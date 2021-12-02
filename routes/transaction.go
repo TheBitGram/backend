@@ -301,16 +301,6 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Error fetching mempool view: %v", err))
 		return
 	}
-	canCreateProfile, err := fes.canUserCreateProfile(userMetadata, utxoView)
-	if err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem with canUserCreateProfile: %v", err))
-		return
-	}
-	if !canCreateProfile {
-		_AddBadRequestError(ww, fmt.Sprintf(
-			"UpdateProfile: Not allowed to update profile. Please verify your phone number or buy DeSo."))
-		return
-	}
 
 	// When this is nil then the UpdaterPublicKey is assumed to be the owner of
 	// the profile.
