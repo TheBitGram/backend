@@ -14,8 +14,8 @@ type Config struct {
 	APIPort uint16
 
 	// Onboarding
-	StarterDeSoSeed       string
-	StarterDeSoNanos      uint64
+	StarterDESOSeed       string
+	StarterDESONanos      uint64
 	StarterPrefixNanosMap map[string]uint64
 	TwilioAccountSID      string
 	TwilioAuthToken       string
@@ -37,14 +37,8 @@ type Config struct {
 	AdminPublicKeys           []string
 	SuperAdminPublicKeys      []string
 
-	// Analytics + Profiling
-	AmplitudeKey    string
-	AmplitudeDomain string
-	DatadogProfiler bool
-
-	// User Interface
-	SupportEmail           string
-	ShowProcessingSpinners bool
+	// Analytics
+	AmplitudeKey string
 
 	// Images
 	GCPCredentialsPath string
@@ -55,9 +49,10 @@ type Config struct {
 	WyreAccountId     string
 	WyreApiKey        string
 	WyreSecretKey     string
-	BuyDeSoBTCAddress string
-	BuyDeSoETHAddress string
-	BuyDeSoSeed       string
+	BuyDESOBTCAddress string
+	BuyDESOETHAddress string
+	BuyDESOSeed       string
+	InfuraProjectID   string
 
 	// Emails
 	SendgridApiKey         string
@@ -74,6 +69,10 @@ type Config struct {
 	// Video Upload
 	CloudflareStreamToken string
 	CloudflareAccountId   string
+
+	// Global State
+	ExposeGlobalState bool
+	GlobalStateAPIUrl string
 }
 
 func LoadConfig(coreConfig *coreCmd.Config) *Config {
@@ -86,8 +85,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	}
 
 	// Onboarding
-	config.StarterDeSoSeed = viper.GetString("starter-deso-seed")
-	config.StarterDeSoNanos = viper.GetUint64("starter-deso-nanos")
+	config.StarterDESOSeed = viper.GetString("starter-deso-seed")
+	config.StarterDESONanos = viper.GetUint64("starter-deso-nanos")
 	starterPrefixNanosMap := viper.GetString("starter-prefix-nanos-map")
 	if len(starterPrefixNanosMap) > 0 {
 		config.StarterPrefixNanosMap = make(map[string]uint64)
@@ -120,13 +119,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	config.AdminPublicKeys = viper.GetStringSlice("admin-public-keys")
 	config.SuperAdminPublicKeys = viper.GetStringSlice("super-admin-public-keys")
 
-	// Analytics + Profiling
+	// Analytics
 	config.AmplitudeKey = viper.GetString("amplitude-key")
-	config.AmplitudeDomain = viper.GetString("amplitude-domain")
-
-	// User Interface
-	config.SupportEmail = viper.GetString("support-email")
-	config.ShowProcessingSpinners = viper.GetBool("show-processing-spinners")
 
 	// Images
 	config.GCPCredentialsPath = viper.GetString("gcp-credentials-path")
@@ -139,13 +133,15 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	config.WyreSecretKey = viper.GetString("wyre-secret-key")
 
 	// BTC address to send all Bitcoin received from Wyre purchases and "Buy With BTC" purchases.
-	config.BuyDeSoBTCAddress = viper.GetString("buy-deso-btc-address")
+	config.BuyDESOBTCAddress = viper.GetString("buy-deso-btc-address")
 
 	// ETH address to send all ETH received from "Buy With ETH" purchases.
-	config.BuyDeSoETHAddress = viper.GetString("buy-deso-eth-address")
+	config.BuyDESOETHAddress = viper.GetString("buy-deso-eth-address")
+	// Project ID for Infura requests
+	config.InfuraProjectID = viper.GetString("infura-project-id")
 
-	// Seed from which DeSo will be sent for orders placed through Wyre and "Buy With BTC" purchases"
-	config.BuyDeSoSeed = viper.GetString("buy-deso-seed")
+	// Seed from which DeSo will be sent for orders placed through Wyre and "Buy With BTC" purchases
+	config.BuyDESOSeed = viper.GetString("buy-deso-seed")
 
 	// Email
 	config.SendgridApiKey = viper.GetString("sendgrid-api-key")
@@ -163,5 +159,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	config.CloudflareStreamToken = viper.GetString("cloudflare-stream-token")
 	config.CloudflareAccountId = viper.GetString("cloudflare-account-id")
 
+	// Global State
+	config.ExposeGlobalState = viper.GetBool("expose-global-state")
+	config.GlobalStateAPIUrl = viper.GetString("global-state-api-url")
 	return &config
 }

@@ -133,6 +133,17 @@ func (fes *APIServer) WyreWalletOrderSubscription(ww http.ResponseWriter, req *h
 	}
 	referenceId := wyreWalletOrderWebhookRequest.ReferenceId
 	referenceIdSplit := strings.Split(referenceId, ":")
+	if len(referenceIdSplit) != 2 {
+		orderJSON, err := json.Marshal(wyreWalletOrderWebhookRequest)
+		if err != nil {
+			glog.Errorf("WyreWalletOrderSubscription: Invalid ReferenceId: %v, Error marshaling JSON request body: %v", referenceId, err)
+			_AddBadRequestError(ww, fmt.Sprintf("WyreWalletOrderSubscription: Invalid ReferenceId: %v, Error marshaling JSON request body: %v", referenceId, err))
+			return
+		}
+		glog.Errorf("WyreWalletOrderSubscription: Invalid ReferenceId: %v, request body: %v", referenceId, string(orderJSON))
+		_AddBadRequestError(ww, fmt.Sprintf("WyreWalletOrderSubscription: Invalid ReferenceId: %v, requestBody: %v", referenceId, string(orderJSON)))
+		return
+	}
 	publicKey := referenceIdSplit[0]
 	if err := fes.logAmplitudeEvent(publicKey, fmt.Sprintf("wyre : buy : subscription : %v", strings.ToLower(wyreWalletOrderWebhookRequest.OrderStatus)), structs.Map(wyreWalletOrderWebhookRequest)); err != nil {
 		glog.Errorf("WyreWalletOrderSubscription: Error logging payload to amplitude: %v", err)
@@ -192,7 +203,7 @@ func (fes *APIServer) WyreWalletOrderSubscription(ww http.ResponseWriter, req *h
 			}
 			nanosPurchased := fes.GetNanosFromSats(satsPurchased, feeBasisPoints)
 			var balanceInsufficient bool
-			balanceInsufficient, err = fes.ExceedsDeSoBalance(nanosPurchased, fes.Config.BuyDeSoSeed)
+			balanceInsufficient, err = fes.ExceedsDeSoBalance(nanosPurchased, fes.Config.BuyDESOSeed)
 			if err != nil {
 				_AddBadRequestError(ww, fmt.Sprintf("WyreWalletOrdersubscription: Error checking if send deso balance is sufficient: %v", err))
 				return
@@ -364,7 +375,7 @@ func (fes *APIServer) GetWyreWalletOrderQuotation(ww http.ResponseWriter, req *h
 	// Make and marshal the payload
 	body := WyreWalletOrderQuotationPayload{
 		AccountId:         fes.Config.WyreAccountId,
-		Dest:              fmt.Sprintf("bitcoin:%v", fes.Config.BuyDeSoBTCAddress),
+		Dest:              fmt.Sprintf("bitcoin:%v", fes.Config.BuyDESOBTCAddress),
 		AmountIncludeFees: true,
 		DestCurrency:      "BTC",
 		SourceCurrency:    wyreWalletOrderQuotationRequest.SourceCurrency,
@@ -418,6 +429,17 @@ func (fes *APIServer) GetWyreWalletOrderReservation(ww http.ResponseWriter, req 
 		_AddBadRequestError(ww, fmt.Sprintf("GetWyreWalletOrderReservation: Error parsing request body: %v", err))
 		return
 	}
+
+	referenceId := wyreWalletOrderReservationRequest.ReferenceId
+
+	// Decode the referenceId as a public key.
+	if publicKeyBytes, _, err := lib.Base58CheckDecode(referenceId); err != nil || len(publicKeyBytes) != btcec.PubKeyBytesLenCompressed {
+		_AddBadRequestError(ww, fmt.Sprintf(
+			"GetWyreWalletOrderReservation: Problem decoding ReferenceId as public key %s: %v",
+			referenceId, err))
+		return
+	}
+
 	currentTime := uint64(time.Now().UnixNano())
 	// Make and marshal the payload
 	body := WyreWalletOrderReservationPayload{
@@ -429,7 +451,7 @@ func (fes *APIServer) GetWyreWalletOrderReservation(ww http.ResponseWriter, req 
 		Amount:            fmt.Sprintf("%f", wyreWalletOrderReservationRequest.SourceAmount),
 		LockFields:        []string{"dest", "destCurrency"},
 		RedirectUrl:       fmt.Sprintf("https://%v/buy-deso", req.Host),
-		ReferenceId:       fmt.Sprintf("%v:%v", wyreWalletOrderReservationRequest.ReferenceId, currentTime),
+		ReferenceId:       fmt.Sprintf("%v:%v", referenceId, currentTime),
 	}
 
 	payload, err := json.Marshal(body)
@@ -547,7 +569,7 @@ func (fes *APIServer) SetWyreRequestHeaders(req *http.Request, dataBytes []byte)
 }
 
 func (fes *APIServer) GetBTCAddress() string {
-	return fmt.Sprintf("bitcoin:%v", fes.Config.BuyDeSoBTCAddress)
+	return fmt.Sprintf("bitcoin:%v", fes.Config.BuyDESOBTCAddress)
 }
 
 type GetWyreWalletOrderForPublicKeyRequest struct {

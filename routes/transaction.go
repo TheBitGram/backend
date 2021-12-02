@@ -170,14 +170,8 @@ func (fes *APIServer) _afterProcessSubmitPostTransaction(txn *lib.MsgDeSoTxn, re
 		return errors.Errorf("Problem obtaining post entry response: %v", err)
 	}
 
-	// attach a ProfileEntry to the PostEntryResponse
-	verifiedMap, err := fes.GetVerifiedUsernameToPKIDMap()
-	if err != nil {
-		return err
-	}
-
 	profileEntry := utxoView.GetProfileEntryForPublicKey(postEntry.PosterPublicKey)
-	postEntryResponse.ProfileEntryResponse = _profileEntryToResponse(profileEntry, fes.Params, verifiedMap, utxoView)
+	postEntryResponse.ProfileEntryResponse = fes._profileEntryToResponse(profileEntry, utxoView)
 
 	// attach everything to the response
 	response.PostEntryResponse = postEntryResponse
@@ -256,12 +250,13 @@ type UpdateProfileRequest struct {
 
 // UpdateProfileResponse ...
 type UpdateProfileResponse struct {
-	TotalInputNanos   uint64
-	ChangeAmountNanos uint64
-	FeeNanos          uint64
-	Transaction       *lib.MsgDeSoTxn
-	TransactionHex    string
-	TxnHashHex        string
+	TotalInputNanos               uint64
+	ChangeAmountNanos             uint64
+	FeeNanos                      uint64
+	Transaction                   *lib.MsgDeSoTxn
+	TransactionHex                string
+	TxnHashHex                    string
+	CompProfileCreationTxnHashHex string
 }
 
 // UpdateProfile ...
@@ -383,6 +378,17 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	additionalFees, compProfileCreationTxnHash, err := fes.CompProfileCreation(profilePublicKey, userMetadata, utxoView)
+	if err != nil {
+		_AddBadRequestError(ww, err.Error())
+		return
+	}
+
+	var compProfileCreationTxnHashHex string
+	if compProfileCreationTxnHash != nil {
+		compProfileCreationTxnHashHex = compProfileCreationTxnHash.String()
+	}
+
 	// Try and create the UpdateProfile txn for the user.
 	txn, totalInput, changeAmount, fees, err := fes.blockchain.CreateUpdateProfileTxn(
 		updaterPublicKeyBytes,
@@ -393,7 +399,7 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		requestData.NewCreatorBasisPoints,
 		requestData.NewStakeMultipleBasisPoints,
 		requestData.IsHidden,
-		0,
+		additionalFees,
 		requestData.MinFeeRateNanosPerKB, fes.backendServer.GetMempool(), additionalOutputs)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem creating transaction: %v", err))
@@ -407,7 +413,7 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 	}
 
 	// TODO: for consistency, should we add InTutorial to the request data. It doesn't save us much since we need fetch the user metadata regardless.
-	if userMetadata.TutorialStatus == INVEST_OTHERS_SELL {
+	if userMetadata.TutorialStatus == STARTED || userMetadata.TutorialStatus == INVEST_OTHERS_SELL {
 		userMetadata.TutorialStatus = CREATE_PROFILE
 		if err = fes.putUserMetadataInGlobalState(userMetadata); err != nil {
 			_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem updating tutorial status to update profile completed: %v", err))
@@ -417,38 +423,39 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 
 	// Return all the data associated with the transaction in the response
 	res := UpdateProfileResponse{
-		TotalInputNanos:   totalInput,
-		ChangeAmountNanos: changeAmount,
-		FeeNanos:          fees,
-		Transaction:       txn,
-		TransactionHex:    hex.EncodeToString(txnBytes),
-		TxnHashHex:        txn.Hash().String(),
+		TotalInputNanos:               totalInput,
+		ChangeAmountNanos:             changeAmount,
+		FeeNanos:                      fees,
+		Transaction:                   txn,
+		TransactionHex:                hex.EncodeToString(txnBytes),
+		TxnHashHex:                    txn.Hash().String(),
+		CompProfileCreationTxnHashHex: compProfileCreationTxnHashHex,
 	}
-	if err := json.NewEncoder(ww).Encode(res); err != nil {
+	if err = json.NewEncoder(ww).Encode(res); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("SendMessage: Problem encoding response as JSON: %v", err))
 		return
 	}
 }
 
-func (fes *APIServer) CompProfileCreation(profilePublicKey []byte, userMetadata *UserMetadata, utxoView *lib.UtxoView) (_additionalFee uint64, _err error) {
+func (fes *APIServer) CompProfileCreation(profilePublicKey []byte, userMetadata *UserMetadata, utxoView *lib.UtxoView) (_additionalFee uint64, _txnHash *lib.BlockHash, _err error) {
 	// Determine if this is a profile creation request and if we need to comp the user for creating the profile.
 	existingProfileEntry := utxoView.GetProfileEntryForPublicKey(profilePublicKey)
 	// If we are updating an existing profile, there is no fee and we do not comp anything.
 	if existingProfileEntry != nil {
-		return 0, nil
+		return 0, nil, nil
 	}
 	// Additional fee is set to the create profile fee when we are creating a profile
 	additionalFees := utxoView.GlobalParamsEntry.CreateProfileFeeNanos
 
 	// Only comp create profile fee if frontend server has both twilio and starter deso seed configured and the user
 	// has verified their profile.
-	if !fes.Config.CompProfileCreation || fes.Config.StarterDeSoSeed == "" || fes.Twilio == nil || (userMetadata.PhoneNumber == "" && !userMetadata.JumioVerified) {
-		return additionalFees, nil
+	if !fes.Config.CompProfileCreation || fes.Config.StarterDESOSeed == "" || fes.Twilio == nil || (userMetadata.PhoneNumber == "" && !userMetadata.JumioVerified) {
+		return additionalFees, nil, nil
 	}
 	var currentBalanceNanos uint64
 	currentBalanceNanos, err := GetBalanceForPublicKeyUsingUtxoView(profilePublicKey, utxoView)
 	if err != nil {
-		return 0, errors.Wrap(fmt.Errorf("UpdateProfile: error getting current balance: %v", err), "")
+		return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: error getting current balance: %v", err), "")
 	}
 	createProfileFeeNanos := utxoView.GlobalParamsEntry.CreateProfileFeeNanos
 
@@ -459,58 +466,58 @@ func (fes *APIServer) CompProfileCreation(profilePublicKey []byte, userMetadata 
 	if userMetadata.PhoneNumber != "" && !userMetadata.JumioVerified {
 		phoneNumberMetadata, err = fes.getPhoneNumberMetadataFromGlobalState(userMetadata.PhoneNumber)
 		if err != nil {
-			return 0, errors.Wrap(fmt.Errorf("UpdateProfile: error getting phone number metadata for public key %v: %v", profilePublicKey, err), "")
+			return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: error getting phone number metadata for public key %v: %v", profilePublicKey, err), "")
 		}
 		if phoneNumberMetadata == nil {
-			return 0, errors.Wrap(fmt.Errorf("UpdateProfile: no phone number metadata for phone number %v", userMetadata.PhoneNumber), "")
+			return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: no phone number metadata for phone number %v", userMetadata.PhoneNumber), "")
 		}
 		if !phoneNumberMetadata.ShouldCompProfileCreation || currentBalanceNanos > createProfileFeeNanos {
-			return additionalFees, nil
+			return additionalFees, nil, nil
 		}
 	} else {
 		// User has been Jumio verified but should comp profile creation is false, just return
 		if !userMetadata.JumioShouldCompProfileCreation {
-			return additionalFees, nil
+			return additionalFees, nil, nil
 		}
 	}
 
 	// Find the minimum starter bit deso amount
-	minStarterDeSoNanos := fes.Config.StarterDeSoNanos
+	minStarterDESONanos := fes.Config.StarterDESONanos
 	if len(fes.Config.StarterPrefixNanosMap) > 0 {
 		for _, starterDeSo := range fes.Config.StarterPrefixNanosMap {
-			if starterDeSo < minStarterDeSoNanos {
-				minStarterDeSoNanos = starterDeSo
+			if starterDeSo < minStarterDESONanos {
+				minStarterDESONanos = starterDeSo
 			}
 		}
 	}
 	// We comp the create profile fee minus the minimum starter deso amount divided by 2.
 	// This discourages botting while covering users who verify a phone number.
-	compAmount := createProfileFeeNanos - (minStarterDeSoNanos / 2)
+	compAmount := createProfileFeeNanos - (minStarterDESONanos / 2)
 	// If the user won't have enough deso to cover the fee, this is an error.
 	if currentBalanceNanos+compAmount < createProfileFeeNanos {
-		return 0, errors.Wrap(fmt.Errorf("Creating a profile requires DeSo.  Please purchase some to create a profile."), "")
+		return 0, nil, errors.Wrap(fmt.Errorf("Creating a profile requires DeSo.  Please purchase some to create a profile."), "")
 	}
 	// Set should comp to false so we don't continually comp a public key.  PhoneNumberMetadata is only non-nil if
 	// a user verified their phone number but is not jumio verified.
 	if phoneNumberMetadata != nil {
 		phoneNumberMetadata.ShouldCompProfileCreation = false
 		if err = fes.putPhoneNumberMetadataInGlobalState(phoneNumberMetadata); err != nil {
-			return 0, errors.Wrap(fmt.Errorf("UpdateProfile: Error setting ShouldComp to false for phone number metadata: %v", err), "")
+			return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: Error setting ShouldComp to false for phone number metadata: %v", err), "")
 		}
 	} else {
 		// Set JumioShouldCompProfileCreation to false so we don't continue to comp profile creation.
 		userMetadata.JumioShouldCompProfileCreation = false
 		if err = fes.putUserMetadataInGlobalState(userMetadata); err != nil {
-			return 0, errors.Wrap(fmt.Errorf("UpdateProfile: Error setting ShouldComp to false for jumio user metadata: %v", err), "")
+			return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: Error setting ShouldComp to false for jumio user metadata: %v", err), "")
 		}
 	}
 
 	// Send the comp amount to the public key
-	_, err = fes.SendSeedDeSo(profilePublicKey, compAmount, false)
+	txnHash, err := fes.SendSeedDeSo(profilePublicKey, compAmount, false)
 	if err != nil {
-		return 0, errors.Wrap(fmt.Errorf("UpdateProfile: error comping create profile fee: %v", err), "")
+		return 0, nil, errors.Wrap(fmt.Errorf("UpdateProfile: error comping create profile fee: %v", err), "")
 	}
-	return additionalFees, nil
+	return additionalFees, txnHash, nil
 }
 
 func GetBalanceForPublicKeyUsingUtxoView(
@@ -572,7 +579,7 @@ type ExchangeBitcoinResponse struct {
 
 // ExchangeBitcoinStateless ...
 func (fes *APIServer) ExchangeBitcoinStateless(ww http.ResponseWriter, req *http.Request) {
-	if fes.Config.BuyDeSoSeed == "" {
+	if fes.Config.BuyDESOSeed == "" {
 		_AddBadRequestError(ww, "ExchangeBitcoinStateless: This node is not configured to sell DeSo for Bitcoin")
 		return
 	}
@@ -657,7 +664,7 @@ func (fes *APIServer) ExchangeBitcoinStateless(ww http.ResponseWriter, req *http
 		uint64(burnAmountSatoshis),
 		uint64(requestData.FeeRateSatoshisPerKB),
 		pubKey,
-		fes.Config.BuyDeSoBTCAddress,
+		fes.Config.BuyDESOBTCAddress,
 		fes.Params,
 		utxoSource)
 
@@ -721,7 +728,7 @@ func (fes *APIServer) ExchangeBitcoinStateless(ww http.ResponseWriter, req *http
 	fes.UpdateUSDCentsToDeSoExchangeRate()
 
 	nanosPurchased := fes.GetNanosFromSats(uint64(burnAmountSatoshis), feeBasisPoints)
-	balanceInsufficient, err := fes.ExceedsDeSoBalance(nanosPurchased, fes.Config.BuyDeSoSeed)
+	balanceInsufficient, err := fes.ExceedsDeSoBalance(nanosPurchased, fes.Config.BuyDESOSeed)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("ExchangeBitcoinStateless: Error checking if send deso balance is sufficient: %v", err))
 		return
@@ -836,6 +843,8 @@ func (fes *APIServer) GetNanosFromSats(satoshis uint64, feeBasisPoints uint64) u
 func (fes *APIServer) GetNanosFromETH(eth *big.Float, feeBasisPoints uint64) uint64 {
 	usdCentsPerETH := big.NewFloat(float64(fes.UsdCentsPerETHExchangeRate))
 	usdCentsETH := big.NewFloat(0).Mul(eth, usdCentsPerETH)
+	// This number should always fit into a float64 so we shouldn't have a problem
+	// with overflow.
 	usdCentsFloat, _ := usdCentsETH.Float64()
 
 	return fes.GetNanosFromUSDCents(usdCentsFloat, feeBasisPoints)
@@ -850,7 +859,7 @@ func (fes *APIServer) GetNanosFromUSDCents(usdCents float64, feeBasisPoints uint
 	return nanosPurchased
 }
 
-// ExceedsSendDeSoBalance - Check if nanosPurchased is greater than the balance of the BuyDeSo wallet.
+// ExceedsSendDeSoBalance - Check if nanosPurchased is greater than the balance of the BuyDESO wallet.
 func (fes *APIServer) ExceedsDeSoBalance(nanosPurchased uint64, seed string) (bool, error) {
 	buyDeSoSeedBalance, err := fes.getBalanceForSeed(seed)
 	if err != nil {
@@ -1727,7 +1736,7 @@ func (fes *APIServer) BuyOrSellCreatorCoin(ww http.ResponseWriter, req *http.Req
 		// TODO: check that user is buying from list of creators included in tutorial
 		// TODO: Save which creator a user purchased by PKID in user metadata so we can bring them to the same place in the flow
 		// TODO: Do we need to save how much they bought for usage in tutorial?
-		if operationType == lib.CreatorCoinOperationTypeBuy && userMetadata.TutorialStatus == STARTED {
+		if operationType == lib.CreatorCoinOperationTypeBuy && (userMetadata.TutorialStatus == CREATE_PROFILE || userMetadata.TutorialStatus == STARTED) && requestData.CreatorPublicKeyBase58Check != requestData.UpdaterPublicKeyBase58Check {
 			if reflect.DeepEqual(updaterPublicKeyBytes, creatorPublicKeyBytes) {
 				_AddBadRequestError(ww, fmt.Sprintf("BuyOrSellCreatorCoin: Cannot purchase your own coin in the Invest in others step"))
 				return
@@ -1760,7 +1769,7 @@ func (fes *APIServer) BuyOrSellCreatorCoin(ww http.ResponseWriter, req *http.Req
 		}
 
 		// Tutorial state: user is investing in themselves
-		if operationType == lib.CreatorCoinOperationTypeBuy && userMetadata.TutorialStatus == CREATE_PROFILE && requestData.CreatorPublicKeyBase58Check == requestData.UpdaterPublicKeyBase58Check {
+		if operationType == lib.CreatorCoinOperationTypeBuy && (userMetadata.TutorialStatus == INVEST_OTHERS_SELL || userMetadata.TutorialStatus == CREATE_PROFILE) && requestData.CreatorPublicKeyBase58Check == requestData.UpdaterPublicKeyBase58Check {
 			userMetadata.TutorialStatus = INVEST_SELF
 			updateUserMetadata = true
 		}
@@ -2130,22 +2139,22 @@ func (fes *APIServer) SendDiamonds(ww http.ResponseWriter, req *http.Request) {
 
 // getTransactionFee transforms transactionFees specified in an API request body to DeSoOutput and combines that with node-level transaction fees for this transaction type.
 func (fes *APIServer) getTransactionFee(txnType lib.TxnType, transactorPublicKey []byte, transactionFees []TransactionFee) (_outputs []*lib.DeSoOutput, _err error) {
-  // Transform transaction fees specified by the API request body.
+	// Transform transaction fees specified by the API request body.
 	extraOutputs, err := TransformTransactionFeesToOutputs(transactionFees)
 	if err != nil {
 		return nil, err
 	}
-  // Look up node-level fees for this transaction type.
+	// Look up node-level fees for this transaction type.
 	fees := fes.TransactionFeeMap[txnType]
 	// If there are no node fees for this transaction type, don't even bother checking exempt public keys, just return the DeSoOutputs specified by the API request body.
 	if len(fees) == 0 {
 		return extraOutputs, nil
 	}
-  // If this node has designated this public key as one exempt from node-level fees, only return the DeSoOutputs requested by the API request body.
+	// If this node has designated this public key as one exempt from node-level fees, only return the DeSoOutputs requested by the API request body.
 	if _, exists := fes.ExemptPublicKeyMap[lib.PkToString(transactorPublicKey, fes.Params)]; exists {
 		return extraOutputs, nil
 	}
-  // Append the fees to the extraOutputs and return.
+	// Append the fees to the extraOutputs and return.
 	newOutputs := append(extraOutputs, fees...)
 	return newOutputs, nil
 }
@@ -2167,6 +2176,9 @@ type AuthorizeDerivedKeyRequest struct {
 	// The intended operation on the derived key.
 	DeleteKey bool `safeForLogging:"true"`
 
+	// If we intend to sign this transaction with a derived key.
+	DerivedKeySignature bool `safeForLogging:"true"`
+
 	// No need to specify ProfileEntryResponse in each TransactionFee
 	TransactionFees []TransactionFee `safeForLogging:"true"`
 
@@ -2185,7 +2197,7 @@ type AuthorizeDerivedKeyResponse struct {
 }
 
 // AuthorizeDerivedKey ...
-func (fes *APIServer) AuthorizeDerivedKey(ww http.ResponseWriter, req *http.Request){
+func (fes *APIServer) AuthorizeDerivedKey(ww http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(io.LimitReader(req.Body, MaxRequestBodySizeBytes))
 	requestData := AuthorizeDerivedKeyRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
@@ -2243,6 +2255,7 @@ func (fes *APIServer) AuthorizeDerivedKey(ww http.ResponseWriter, req *http.Requ
 		requestData.ExpirationBlock,
 		accessSignature,
 		requestData.DeleteKey,
+		requestData.DerivedKeySignature,
 		// Standard transaction fields
 		requestData.MinFeeRateNanosPerKB, fes.backendServer.GetMempool(), additionalOutputs)
 	if err != nil {
@@ -2315,7 +2328,8 @@ func (fes *APIServer) AppendExtraData(ww http.ResponseWriter, req *http.Request)
 	if txn.ExtraData == nil {
 		txn.ExtraData = make(map[string][]byte)
 	}
-	for k,v := range requestData.ExtraData {
+
+	for k, v := range requestData.ExtraData {
 		vBytes, err := hex.DecodeString(v)
 		if err != nil {
 			_AddBadRequestError(ww, fmt.Sprintf("AppendExtraData: Problem decoding ExtraData: %v", err))

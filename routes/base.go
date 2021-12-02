@@ -262,13 +262,9 @@ type GetAppStateRequest struct {
 }
 
 type GetAppStateResponse struct {
-	AmplitudeKey                        string
-	AmplitudeDomain                     string
 	MinSatoshisBurnedForProfileCreation uint64
 	BlockHeight                         uint32
 	IsTestnet                           bool
-	SupportEmail                        string
-	ShowProcessingSpinners              bool
 
 	HasStarterDeSoSeed    bool
 	HasTwilioAPIKey       bool
@@ -282,7 +278,12 @@ type GetAppStateResponse struct {
 	USDCentsPerDeSoExchangeRate uint64
 	JumioDeSoNanos              uint64
 
-	TransactionFeeMap     map[string][]TransactionFee
+	TransactionFeeMap map[string][]TransactionFee
+
+	// Address to which we want to send ETH when used to buy DESO
+	BuyETHAddress string
+
+	Nodes map[uint64]lib.DeSoNode
 
 	USDCentsPerBitCloutExchangeRate uint64 // Deprecated
 	JumioBitCloutNanos              uint64 // Deprecated
@@ -305,15 +306,11 @@ func (fes *APIServer) GetAppState(ww http.ResponseWriter, req *http.Request) {
 	}
 
 	res := &GetAppStateResponse{
-		AmplitudeKey:                        fes.Config.AmplitudeKey,
-		AmplitudeDomain:                     fes.Config.AmplitudeDomain,
-		ShowProcessingSpinners:              fes.Config.ShowProcessingSpinners,
 		MinSatoshisBurnedForProfileCreation: fes.Config.MinSatoshisForProfile,
 		BlockHeight:                         fes.backendServer.GetBlockchain().BlockTip().Height,
 		IsTestnet:                           fes.Params.NetworkType == lib.NetworkType_TESTNET,
-		SupportEmail:                        fes.Config.SupportEmail,
 		HasTwilioAPIKey:                     fes.Twilio != nil,
-		HasStarterDeSoSeed:                  fes.Config.StarterDeSoSeed != "",
+		HasStarterDeSoSeed:                  fes.Config.StarterDESOSeed != "",
 		CreateProfileFeeNanos:               utxoView.GlobalParamsEntry.CreateProfileFeeNanos,
 		CompProfileCreation:                 fes.Config.CompProfileCreation,
 		DiamondLevelMap:                     lib.GetDeSoNanosDiamondLevelMapAtBlockHeight(int64(fes.blockchain.BlockTip().Height)),
@@ -323,6 +320,8 @@ func (fes *APIServer) GetAppState(ww http.ResponseWriter, req *http.Request) {
 		USDCentsPerDeSoExchangeRate:         fes.GetExchangeDeSoPrice(),
 		JumioDeSoNanos:                      fes.GetJumioDeSoNanos(),
 		TransactionFeeMap:                   fes.TxnFeeMapToResponse(true),
+		BuyETHAddress:                       fes.Config.BuyDESOETHAddress,
+		Nodes:                               lib.NODES,
 
 		// Deprecated
 		USDCentsPerBitCloutExchangeRate: fes.GetExchangeDeSoPrice(),
