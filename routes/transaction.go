@@ -383,11 +383,12 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	additionalFees, err := fes.CompProfileCreation(profilePublicKey, userMetadata, utxoView)
-	if err != nil {
-		_AddBadRequestError(ww, err.Error())
-		return
-	}
+	//additionalFees, err := fes.CompProfileCreation(profilePublicKey, userMetadata, utxoView)
+	//if err != nil {
+	//	_AddBadRequestError(ww, err.Error())
+	//	return
+	//}
+	additionalFees := 0
 
 	// Try and create the UpdateProfile txn for the user.
 	txn, totalInput, changeAmount, fees, err := fes.blockchain.CreateUpdateProfileTxn(
