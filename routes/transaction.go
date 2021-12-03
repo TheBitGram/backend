@@ -394,6 +394,12 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	additionalFees, err := fes.CompProfileCreation(profilePublicKey, userMetadata, utxoView)
+	if err != nil {
+		_AddBadRequestError(ww, err.Error())
+		return
+	}
+
 	// Try and create the UpdateProfile txn for the user.
 	txn, totalInput, changeAmount, fees, err := fes.blockchain.CreateUpdateProfileTxn(
 		updaterPublicKeyBytes,
@@ -404,7 +410,7 @@ func (fes *APIServer) UpdateProfile(ww http.ResponseWriter, req *http.Request) {
 		requestData.NewCreatorBasisPoints,
 		requestData.NewStakeMultipleBasisPoints,
 		requestData.IsHidden,
-		0,
+		additionalFees,
 		requestData.MinFeeRateNanosPerKB, fes.backendServer.GetMempool(), additionalOutputs)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("UpdateProfile: Problem creating transaction: %v", err))
