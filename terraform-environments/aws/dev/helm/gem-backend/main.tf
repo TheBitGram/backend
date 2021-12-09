@@ -8,9 +8,9 @@ locals {
   replica_count     = 1
   docker_repository = "067550988196.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.7"
-  requests_memory   = "32Gi"
-  requests_cpu      = "7"
-  # mini boy
+  requests_memory   = "100Gi"
+  requests_cpu      = "60"
+  # put me on the big boy
 
   tags = {
     ops_env              = "dev"

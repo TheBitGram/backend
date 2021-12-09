@@ -56,14 +56,14 @@ deployment:
 
     volumeMounts:
     # name must match the volume name below
-    - name: backend-efs
+    - name: backend-ebs-io
       mountPath: /etc/backend-volume
 
 
 volumes:
-- name: backend-efs
+- name: backend-ebs-io
   persistentVolumeClaim:
-    claimName: backend-efs
+    claimName: backend-ebs-io
 
 
 ingress:
