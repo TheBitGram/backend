@@ -3,7 +3,7 @@
 locals {
   aws_region        = "us-east-1"
   environment_name  = "stage"
-  namespace         = "app-stage"
+  namespace         = "app"
   fullnameOverride  = "gem-backend"
   replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
