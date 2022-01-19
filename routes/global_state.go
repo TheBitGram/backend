@@ -25,43 +25,49 @@ const (
 	RoutePathGlobalStateSeekRemote     = "/api/v1/global-state/seek"
 )
 
+type GlobalState struct {
+	GlobalStateRemoteNode   string
+	GlobalStateRemoteSecret string
+	GlobalStateDB           *badger.DB
+}
+
 // GlobalStateRoutes returns the routes for managing global state.
 // Note that these routes are generally protected by a shared_secret
-func (fes *APIServer) GlobalStateRoutes() []Route {
+func (gs *GlobalState) GlobalStateRoutes() []Route {
 	var GlobalStateRoutes = []Route{
 		{
-			"GlobalStatePutRemote",
+			"PutRemote",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGlobalStatePutRemote,
-			fes.GlobalStatePutRemote,
+			gs.PutRemote,
 			AdminAccess, // CheckSecret
 		},
 		{
-			"GlobalStateGetRemote",
+			"GetRemote",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGlobalStateGetRemote,
-			fes.GlobalStateGetRemote,
+			gs.GetRemote,
 			AdminAccess, // CheckSecret
 		},
 		{
-			"GlobalStateBatchGetRemote",
+			"BatchGetRemote",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGlobalStateBatchGetRemote,
-			fes.GlobalStateBatchGetRemote,
+			gs.BatchGetRemote,
 			AdminAccess, // CheckSecret
 		},
 		{
-			"GlobalStateDeleteRemote",
+			"DeleteRemote",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGlobalStateDeleteRemote,
-			fes.GlobalStateDeleteRemote,
+			gs.DeleteRemote,
 			AdminAccess, // CheckSecret
 		},
 		{
 			"GlobalStateSeekRemote",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGlobalStateSeekRemote,
-			fes.GlobalStateSeekRemote,
+			gs.GlobalStateSeekRemote,
 			AdminAccess, // CheckSecret
 		},
 	}
@@ -147,8 +153,14 @@ var (
 
 	_GlobalStatePrefixCountryIDDocumentTypeSubTypeDocumentNumber = []byte{19}
 
-	// Jumio DeSoNanos
+	// Jumio DeSoNanos -- Deprecated!
 	_GlobalStatePrefixJumioDeSoNanos = []byte{21}
+
+	// Jumio USD Cents
+	_GlobalStatePrefixJumioUSDCents = []byte{39}
+
+	// Jumio Kickback USD Cents
+	_GlobalStatePrefixJumioKickbackUSDCents = []byte{40}
 
 	// Tutorial featured well-known creators
 	_GlobalStateKeyWellKnownTutorialCreators = []byte{22}
@@ -161,9 +173,10 @@ var (
 	_GlobalStatePrefixReferralHashToReferralInfo = []byte{24}
 	// 	- <prefix, PKID, referral hash (8 bytes)> -> <IsActive bool>
 	_GlobalStatePrefixPKIDReferralHashToIsActive = []byte{25}
-
-	// - <prefix, PKID, referral hash (6-8 bytes), Referred PKID
+	// - <prefix, PKID, referral hash (8 bytes), Referred PKID
 	_GlobalStatePrefixPKIDReferralHashRefereePKID = []byte{26}
+	// - <prefix, TimestampNanos, PKID, referral hash (8 bytes), Referred PKID
+	_GlobalStatePrefixTimestampPKIDReferralHashRefereePKID = []byte{37}
 
 	// ETH purchases <prefix, ETH Txn Hash> -> <Complete bool>
 	_GlobalStatePrefixForETHPurchases = []byte{27}
@@ -178,7 +191,7 @@ var (
 	// which serve to multiply the hotness score of a given post hash.
 	//
 	// <prefix, OperationTimestampNanos, PostHash> -> <HotFeedOp>
-	_GlobalStatePrefixForHotFeedOps = []byte{31}
+	_GlobalStatePrefixForHotFeedApprovedPostOps = []byte{31}
 
 	// Prefix for accessing hot feed score constants.  <prefix> -> <uint64>
 	_GlobalStatePrefixForHotFeedInteractionCap  = []byte{32}
@@ -191,17 +204,30 @@ var (
 	// - <prefix, public key> -> void
 	_GlobalStatePrefixExemptPublicKeys = []byte{35}
 
+	// This key is used in a similar way to the _GlobalStatePrefixForHotFeedApprovedPostOps
+	// above except it is used to track changes to the HotFeedPKIDMultiplier map.
+	// <prefix, OperationTimestampNanos, PKID> -> <HotFeedPKIDMultiplierOp>
+	_GlobalStatePrefixForHotFeedPKIDMultiplierOps = []byte{36}
+
+	// This key is used to manage sign up bonus configurations for a country
+	_GlobalStatePrefixForCountryCodeToCountrySignUpBonus = []byte{38}
+
 	// TODO: This process is a bit error-prone. We should come up with a test or
 	// something to at least catch cases where people have two prefixes with the
 	// same ID.
 	//
 
-	// NEXT_TAG: 36
+	// NEXT_TAG: 41
 )
 
-type HotFeedOp struct {
+type HotFeedApprovedPostOp struct {
 	IsRemoval  bool
-	Multiplier float64 // Negatives are ignored, 1 has no effect.
+	Multiplier float64 // Negatives are ignored when updating the ApprovedPosts map.
+}
+
+type HotFeedPKIDMultiplierOp struct {
+	InteractionMultiplier float64 // Negatives are ignored when updating the PKIDMultiplier map.
+	PostsMultiplier       float64 // Negatives are ignored when updating the PKIDMultiplier map.
 }
 
 // A ReferralInfo struct holds all of the params and stats for a referral link/hash.
@@ -334,6 +360,11 @@ type UserMetadata struct {
 
 	// Txn hash in which the referrer was paid
 	ReferrerDeSoTxnHash string
+
+	// The number of unread notifications stored in the db.
+	UnreadNotifications uint64
+	// The most recently scanned notification transaction index in the database. Stored in order to prevent unnecessary re-scanning.
+	LatestUnreadNotificationIndex int64
 }
 
 type TutorialStatus string
@@ -346,6 +377,7 @@ const (
 	INVEST_OTHERS_SELL TutorialStatus = "InvestInOthersSellComplete"
 	CREATE_PROFILE     TutorialStatus = "TutorialCreateProfileComplete"
 	INVEST_SELF        TutorialStatus = "InvestInYourselfComplete"
+	FOLLOW_CREATORS    TutorialStatus = "FollowCreatorsComplete"
 	DIAMOND            TutorialStatus = "GiveADiamondComplete"
 	COMPLETE           TutorialStatus = "TutorialComplete"
 )
@@ -363,6 +395,9 @@ type PhoneNumberMetadata struct {
 
 	// if true, when the public key associated with this metadata tries to create a profile, we will comp their fee.
 	ShouldCompProfileCreation bool
+
+	// True if user deleted PII. Since users can
+	PublicKeyDeleted bool
 }
 
 type WyreWalletOrderMetadata struct {
@@ -377,6 +412,22 @@ type WyreWalletOrderMetadata struct {
 
 	// BlockHash of the transaction for sending the DeSo
 	BasicTransferTxnBlockHash *lib.BlockHash
+}
+
+type CountryLevelSignUpBonus struct {
+	// If true, referee amount specified in referral code will be paid to users who sign up with IDs from this country.
+	// If false, ReferralAmountOverrideUSDCents will be paid to users who sign up with IDs from this country.
+	AllowCustomReferralAmount bool
+	// Amount all referees will be paid when signing up from this country if AllowCustomReferralAmount is false.
+	ReferralAmountOverrideUSDCents uint64
+	// If true, referrer amount specified in referral code will be paid as a kickback to users who gave out referral
+	// code that a user signed up with IDs from this country.
+	// If false, KickbackAmountOverrideUSDCents will be paid as a kickback to referrers when a user signs up with an ID
+	// from this country.
+	AllowCustomKickbackAmount bool
+	// Amount all referrers will be paid when a referee signs up from this country if AllowCustomKickbackAmount is
+	// false.
+	KickbackAmountOverrideUSDCents uint64
 }
 
 func GlobalStateKeyForNFTDropEntry(dropNumber uint64) []byte {
@@ -430,21 +481,35 @@ func GlobalStateKeyForPKIDReferralHashToIsActive(pkid *lib.PKID, referralHashByt
 	return key
 }
 
-// Key for seeking the DB for hot feed operations based on timestamp.
-func GlobalStateSeekKeyForHotFeedOps(startTimestampNanos uint64) []byte {
-	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedOps...)
+func GlobalStateSeekKeyForHotFeedApprovedPostOps(startTimestampNanos uint64) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedApprovedPostOps...)
 	key := append(prefixCopy, lib.EncodeUint64(startTimestampNanos)...)
 	return key
 }
 
-// Key for seeking the DB for all hot feed operations.
-func GlobalStateKeyForHotFeedOp(
+func GlobalStateKeyForHotFeedApprovedPostOp(
 	opTimestampNanos uint64,
 	postHash *lib.BlockHash,
 ) []byte {
-	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedOps...)
+	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedApprovedPostOps...)
 	key := append(prefixCopy, lib.EncodeUint64(opTimestampNanos)...)
 	key = append(key, postHash[:]...)
+	return key
+}
+
+func GlobalStateSeekKeyForHotFeedPKIDMultiplierOps(startTimestampNanos uint64) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedPKIDMultiplierOps...)
+	key := append(prefixCopy, lib.EncodeUint64(startTimestampNanos)...)
+	return key
+}
+
+func GlobalStateKeyForHotFeedPKIDMultiplierOp(
+	opTimestampNanos uint64,
+	opPKID *lib.PKID,
+) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixForHotFeedPKIDMultiplierOps...)
+	key := append(prefixCopy, lib.EncodeUint64(opTimestampNanos)...)
+	key = append(key, opPKID[:]...)
 	return key
 }
 
@@ -452,6 +517,13 @@ func GlobalStateKeyForHotFeedOp(
 func GlobalStateSeekKeyForPKIDReferralHashes(pkid *lib.PKID) []byte {
 	prefixCopy := append([]byte{}, _GlobalStatePrefixPKIDReferralHashToIsActive...)
 	key := append(prefixCopy, pkid[:]...)
+	return key
+}
+
+func GlobalStateSeekKeyForPKIDReferralHashRefereePKIDs(pkid *lib.PKID, referralHash []byte) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixPKIDReferralHashRefereePKID...)
+	key := append(prefixCopy, pkid[:]...)
+	key = append(key, referralHash[:]...)
 	return key
 }
 
@@ -463,12 +535,29 @@ func GlobalStateKeyForPKIDReferralHashRefereePKID(pkid *lib.PKID, referralHash [
 	return key
 }
 
+func GlobalStateKeyForTimestampPKIDReferralHashRefereePKID(
+	tstampNanos uint64, pkid *lib.PKID, referralHash []byte, refereePKID *lib.PKID) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixTimestampPKIDReferralHashRefereePKID...)
+	key := append(prefixCopy, lib.EncodeUint64(tstampNanos)...)
+	key = append(key, pkid[:]...)
+	key = append(key, referralHash[:]...)
+	key = append(key, refereePKID[:]...)
+	return key
+}
+
 // Key for accessing a whitelised post in the global feed index.
 func GlobalStateKeyForTstampPostHash(tstampNanos uint64, postHash *lib.BlockHash) []byte {
 	// Make a copy to avoid multiple calls to this function re-using the same slice.
 	key := append([]byte{}, _GlobalStatePrefixTstampNanosPostHash...)
 	key = append(key, lib.EncodeUint64(tstampNanos)...)
 	key = append(key, postHash[:]...)
+	return key
+}
+
+func GlobalStateSeekKeyForTstampPostHash(tstampNanos uint64) []byte {
+	// Make a copy to avoid multiple calls to this function re-using the same slice.
+	key := append([]byte{}, _GlobalStatePrefixTstampNanosPostHash...)
+	key = append(key, lib.EncodeUint64(tstampNanos)...)
 	return key
 }
 
@@ -588,6 +677,16 @@ func GlobalStateKeyForJumioDeSoNanos() []byte {
 	return prefixCopy
 }
 
+func GlobalStateKeyForJumioUSDCents() []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixJumioUSDCents...)
+	return prefixCopy
+}
+
+func GlobalStateKeyForJumioKickbackUSDCents() []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixJumioKickbackUSDCents...)
+	return prefixCopy
+}
+
 func GlobalStateKeyWellKnownTutorialCreators(pkid *lib.PKID) []byte {
 	prefixCopy := append([]byte{}, _GlobalStateKeyWellKnownTutorialCreators...)
 	key := append(prefixCopy, pkid[:]...)
@@ -618,76 +717,82 @@ func GlobalStateKeyExemptPublicKey(publicKey []byte) []byte {
 	return key
 }
 
-type GlobalStatePutRemoteRequest struct {
+func GlobalStateKeyForCountryCodeToCountrySignUpBonus(countryCode string) []byte {
+	prefixCopy := append([]byte{}, _GlobalStatePrefixForCountryCodeToCountrySignUpBonus...)
+	key := append(prefixCopy, []byte(strings.ToLower(countryCode))...)
+	return key
+}
+
+type PutRemoteRequest struct {
 	Key   []byte
 	Value []byte
 }
 
-type GlobalStatePutRemoteResponse struct {
+type PutRemoteResponse struct {
 }
 
-func (fes *APIServer) GlobalStatePutRemote(ww http.ResponseWriter, rr *http.Request) {
+func (gs *GlobalState) PutRemote(ww http.ResponseWriter, rr *http.Request) {
 	// Parse the request.
 	decoder := json.NewDecoder(io.LimitReader(rr.Body, MaxRequestBodySizeBytes))
-	requestData := GlobalStatePutRemoteRequest{}
+	requestData := PutRemoteRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStatePutRemote: Problem parsing request body: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("PutRemote: Problem parsing request body: %v", err))
 		return
 	}
 
 	// Call the put function. Note that this may also proxy to another node.
-	if err := fes.GlobalStatePut(requestData.Key, requestData.Value); err != nil {
+	if err := gs.Put(requestData.Key, requestData.Value); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
-			"GlobalStatePutRemote: Error processing GlobalStatePut: %v", err))
+			"PutRemote: Error processing Put: %v", err))
 		return
 	}
 
 	// Return
-	res := GlobalStatePutRemoteResponse{}
+	res := PutRemoteResponse{}
 	if err := json.NewEncoder(ww).Encode(res); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStatePutRemote: Problem encoding response as JSON: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("PutRemote: Problem encoding response as JSON: %v", err))
 		return
 	}
 }
 
-func (fes *APIServer) CreateGlobalStatePutRequest(key []byte, value []byte) (
+func (gs *GlobalState) CreatePutRequest(key []byte, value []byte) (
 	_url string, _json_data []byte, _err error) {
 
-	req := GlobalStatePutRemoteRequest{
+	req := PutRemoteRequest{
 		Key:   key,
 		Value: value,
 	}
 	json_data, err := json.Marshal(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("GlobalStatePut: Could not marshal JSON: %v", err)
+		return "", nil, fmt.Errorf("Put: Could not marshal JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s%s?%s=%s",
-		fes.Config.GlobalStateRemoteNode, RoutePathGlobalStatePutRemote,
-		GlobalStateSharedSecretParam, fes.Config.GlobalStateRemoteSecret)
+		gs.GlobalStateRemoteNode, RoutePathGlobalStatePutRemote,
+		GlobalStateSharedSecretParam, gs.GlobalStateRemoteSecret)
 
 	return url, json_data, nil
 }
 
-func (fes *APIServer) GlobalStatePut(key []byte, value []byte) error {
+func (gs *GlobalState) Put(key []byte, value []byte) error {
 	// If we have a remote node then use that node to fulfill this request.
-	if fes.Config.GlobalStateRemoteNode != "" {
+	if gs.GlobalStateRemoteNode != "" {
 		// TODO: This codepath is hard to exercise in a test.
 
-		url, json_data, err := fes.CreateGlobalStatePutRequest(key, value)
+		url, json_data, err := gs.CreatePutRequest(key, value)
 		if err != nil {
-			return fmt.Errorf("GlobalStatePut: Error constructing request: %v", err)
+			return fmt.Errorf("Put: Error constructing request: %v", err)
 		}
 		res, err := http.Post(
 			url,
 			"application/json", /*contentType*/
 			bytes.NewBuffer(json_data))
 		if err != nil {
-			return fmt.Errorf("GlobalStatePut: Error processing remote request")
+			return fmt.Errorf("Put: Error processing remote request")
 		}
 		res.Body.Close()
 
-		//res := GlobalStatePutRemoteResponse{}
+		//res := PutRemoteResponse{}
 		//json.NewDecoder(resReturned.Body).Decode(&res)
 
 		// No error means nothing to return.
@@ -696,73 +801,73 @@ func (fes *APIServer) GlobalStatePut(key []byte, value []byte) error {
 
 	// If we get here, it means we don't have a remote node so store the
 	// data in our local db.
-	return fes.GlobalStateDB.Update(func(txn *badger.Txn) error {
+	return gs.GlobalStateDB.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, value)
 	})
 }
 
-type GlobalStateGetRemoteRequest struct {
+type GetRemoteRequest struct {
 	Key []byte
 }
 
-type GlobalStateGetRemoteResponse struct {
+type GetRemoteResponse struct {
 	Value []byte
 }
 
-func (fes *APIServer) GlobalStateGetRemote(ww http.ResponseWriter, rr *http.Request) {
+func (gs *GlobalState) GetRemote(ww http.ResponseWriter, rr *http.Request) {
 	// Parse the request.
 	decoder := json.NewDecoder(io.LimitReader(rr.Body, MaxRequestBodySizeBytes))
-	requestData := GlobalStateGetRemoteRequest{}
+	requestData := GetRemoteRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateGetRemote: Problem parsing request body: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("GetRemote: Problem parsing request body: %v", err))
 		return
 	}
 
 	// Call the get function. Note that this may also proxy to another node.
-	val, err := fes.GlobalStateGet(requestData.Key)
+	val, err := gs.Get(requestData.Key)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
-			"GlobalStateGetRemote: Error processing GlobalStateGet: %v", err))
+			"GetRemote: Error processing Get: %v", err))
 		return
 	}
 
 	// Return
-	res := GlobalStateGetRemoteResponse{
+	res := GetRemoteResponse{
 		Value: val,
 	}
 	if err := json.NewEncoder(ww).Encode(res); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateGetRemote: Problem encoding response as JSON: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("GetRemote: Problem encoding response as JSON: %v", err))
 		return
 	}
 }
 
-func (fes *APIServer) CreateGlobalStateGetRequest(key []byte) (
+func (gs *GlobalState) CreateGetRequest(key []byte) (
 	_url string, _json_data []byte, _err error) {
 
-	req := GlobalStateGetRemoteRequest{
+	req := GetRemoteRequest{
 		Key: key,
 	}
 	json_data, err := json.Marshal(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("GlobalStateGet: Could not marshal JSON: %v", err)
+		return "", nil, fmt.Errorf("Get: Could not marshal JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s%s?%s=%s",
-		fes.Config.GlobalStateRemoteNode, RoutePathGlobalStateGetRemote,
-		GlobalStateSharedSecretParam, fes.Config.GlobalStateRemoteSecret)
+		gs.GlobalStateRemoteNode, RoutePathGlobalStateGetRemote,
+		GlobalStateSharedSecretParam, gs.GlobalStateRemoteSecret)
 
 	return url, json_data, nil
 }
 
-func (fes *APIServer) GlobalStateGet(key []byte) (value []byte, _err error) {
+func (gs *GlobalState) Get(key []byte) (value []byte, _err error) {
 	// If we have a remote node then use that node to fulfill this request.
-	if fes.Config.GlobalStateRemoteNode != "" {
+	if gs.GlobalStateRemoteNode != "" {
 		// TODO: This codepath is currently annoying to test.
 
-		url, json_data, err := fes.CreateGlobalStateGetRequest(key)
+		url, json_data, err := gs.CreateGetRequest(key)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"GlobalStateGet: Error constructing request: %v", err)
+				"Get: Error constructing request: %v", err)
 		}
 
 		resReturned, err := http.Post(
@@ -770,10 +875,10 @@ func (fes *APIServer) GlobalStateGet(key []byte) (value []byte, _err error) {
 			"application/json", /*contentType*/
 			bytes.NewBuffer(json_data))
 		if err != nil {
-			return nil, fmt.Errorf("GlobalStateGet: Error processing remote request")
+			return nil, fmt.Errorf("Get: Error processing remote request")
 		}
 
-		res := GlobalStateGetRemoteResponse{}
+		res := GetRemoteResponse{}
 		json.NewDecoder(resReturned.Body).Decode(&res)
 		resReturned.Body.Close()
 
@@ -783,7 +888,7 @@ func (fes *APIServer) GlobalStateGet(key []byte) (value []byte, _err error) {
 	// If we get here, it means we don't have a remote node so get the
 	// data from our local db.
 	var retValue []byte
-	err := fes.GlobalStateDB.View(func(txn *badger.Txn) error {
+	err := gs.GlobalStateDB.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
 		if err != nil {
 			return nil
@@ -796,74 +901,74 @@ func (fes *APIServer) GlobalStateGet(key []byte) (value []byte, _err error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("GlobalStateGet: Error copying value into new slice: %v", err)
+		return nil, fmt.Errorf("Get: Error copying value into new slice: %v", err)
 	}
 
 	return retValue, nil
 }
 
-type GlobalStateBatchGetRemoteRequest struct {
+type BatchGetRemoteRequest struct {
 	KeyList [][]byte
 }
 
-type GlobalStateBatchGetRemoteResponse struct {
+type BatchGetRemoteResponse struct {
 	ValueList [][]byte
 }
 
-func (fes *APIServer) GlobalStateBatchGetRemote(ww http.ResponseWriter, rr *http.Request) {
+func (gs *GlobalState) BatchGetRemote(ww http.ResponseWriter, rr *http.Request) {
 	// Parse the request.
 	decoder := json.NewDecoder(io.LimitReader(rr.Body, MaxRequestBodySizeBytes))
-	requestData := GlobalStateBatchGetRemoteRequest{}
+	requestData := BatchGetRemoteRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateBatchGetRemote: Problem parsing request body: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("BatchGetRemote: Problem parsing request body: %v", err))
 		return
 	}
 
 	// Call the get function. Note that this may also proxy to another node.
-	values, err := fes.GlobalStateBatchGet(requestData.KeyList)
+	values, err := gs.BatchGet(requestData.KeyList)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
-			"GlobalStateBatchGetRemote: Error processing GlobalStateBatchGet: %v", err))
+			"BatchGetRemote: Error processing BatchGet: %v", err))
 		return
 	}
 
 	// Return
-	res := GlobalStateBatchGetRemoteResponse{
+	res := BatchGetRemoteResponse{
 		ValueList: values,
 	}
 	if err := json.NewEncoder(ww).Encode(res); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateBatchGetRemote: Problem encoding response as JSON: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("BatchGetRemote: Problem encoding response as JSON: %v", err))
 		return
 	}
 }
 
-func (fes *APIServer) CreateGlobalStateBatchGetRequest(keyList [][]byte) (
+func (gs *GlobalState) CreateBatchGetRequest(keyList [][]byte) (
 	_url string, _json_data []byte, _err error) {
 
-	req := GlobalStateBatchGetRemoteRequest{
+	req := BatchGetRemoteRequest{
 		KeyList: keyList,
 	}
 	json_data, err := json.Marshal(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("GlobalStateBatchGet: Could not marshal JSON: %v", err)
+		return "", nil, fmt.Errorf("BatchGet: Could not marshal JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s%s?%s=%s",
-		fes.Config.GlobalStateRemoteNode, RoutePathGlobalStateBatchGetRemote,
-		GlobalStateSharedSecretParam, fes.Config.GlobalStateRemoteSecret)
+		gs.GlobalStateRemoteNode, RoutePathGlobalStateBatchGetRemote,
+		GlobalStateSharedSecretParam, gs.GlobalStateRemoteSecret)
 
 	return url, json_data, nil
 }
 
-func (fes *APIServer) GlobalStateBatchGet(keyList [][]byte) (value [][]byte, _err error) {
+func (gs *GlobalState) BatchGet(keyList [][]byte) (value [][]byte, _err error) {
 	// If we have a remote node then use that node to fulfill this request.
-	if fes.Config.GlobalStateRemoteNode != "" {
+	if gs.GlobalStateRemoteNode != "" {
 		// TODO: This codepath is currently annoying to test.
 
-		url, json_data, err := fes.CreateGlobalStateBatchGetRequest(keyList)
+		url, json_data, err := gs.CreateBatchGetRequest(keyList)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"GlobalStateBatchGet: Error constructing request: %v", err)
+				"BatchGet: Error constructing request: %v", err)
 		}
 
 		resReturned, err := http.Post(
@@ -871,10 +976,10 @@ func (fes *APIServer) GlobalStateBatchGet(keyList [][]byte) (value [][]byte, _er
 			"application/json", /*contentType*/
 			bytes.NewBuffer(json_data))
 		if err != nil {
-			return nil, fmt.Errorf("GlobalStateBatchGet: Error processing remote request")
+			return nil, fmt.Errorf("BatchGet: Error processing remote request")
 		}
 
-		res := GlobalStateBatchGetRemoteResponse{}
+		res := BatchGetRemoteResponse{}
 		json.NewDecoder(resReturned.Body).Decode(&res)
 		resReturned.Body.Close()
 
@@ -884,7 +989,7 @@ func (fes *APIServer) GlobalStateBatchGet(keyList [][]byte) (value [][]byte, _er
 	// If we get here, it means we don't have a remote node so get the
 	// data from our local db.
 	var retValueList [][]byte
-	err := fes.GlobalStateDB.View(func(txn *badger.Txn) error {
+	err := gs.GlobalStateDB.View(func(txn *badger.Txn) error {
 		for _, key := range keyList {
 			item, err := txn.Get(key)
 			if err != nil {
@@ -902,69 +1007,69 @@ func (fes *APIServer) GlobalStateBatchGet(keyList [][]byte) (value [][]byte, _er
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("GlobalStateBatchGet: Error copying value into new slice: %v", err)
+		return nil, fmt.Errorf("BatchGet: Error copying value into new slice: %v", err)
 	}
 
 	return retValueList, nil
 }
 
-type GlobalStateDeleteRemoteRequest struct {
+type DeleteRemoteRequest struct {
 	Key []byte
 }
 
-type GlobalStateDeleteRemoteResponse struct {
+type DeleteRemoteResponse struct {
 }
 
-func (fes *APIServer) CreateGlobalStateDeleteRequest(key []byte) (
+func (gs *GlobalState) CreateDeleteRequest(key []byte) (
 	_url string, _json_data []byte, _err error) {
 
-	req := GlobalStateDeleteRemoteRequest{
+	req := DeleteRemoteRequest{
 		Key: key,
 	}
 	json_data, err := json.Marshal(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("GlobalStateDelete: Could not marshal JSON: %v", err)
+		return "", nil, fmt.Errorf("Delete: Could not marshal JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s%s?%s=%s",
-		fes.Config.GlobalStateRemoteNode, RoutePathGlobalStateDeleteRemote,
-		GlobalStateSharedSecretParam, fes.Config.GlobalStateRemoteSecret)
+		gs.GlobalStateRemoteNode, RoutePathGlobalStateDeleteRemote,
+		GlobalStateSharedSecretParam, gs.GlobalStateRemoteSecret)
 
 	return url, json_data, nil
 }
 
-func (fes *APIServer) GlobalStateDeleteRemote(ww http.ResponseWriter, rr *http.Request) {
+func (gs *GlobalState) DeleteRemote(ww http.ResponseWriter, rr *http.Request) {
 	// Parse the request.
 	decoder := json.NewDecoder(io.LimitReader(rr.Body, MaxRequestBodySizeBytes))
-	requestData := GlobalStateDeleteRemoteRequest{}
+	requestData := DeleteRemoteRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateDeleteRemote: Problem parsing request body: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("DeleteRemote: Problem parsing request body: %v", err))
 		return
 	}
 
 	// Call the Delete function. Note that this may also proxy to another node.
-	if err := fes.GlobalStateDelete(requestData.Key); err != nil {
+	if err := gs.Delete(requestData.Key); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
-			"GlobalStateDeleteRemote: Error processing GlobalStateDelete: %v", err))
+			"DeleteRemote: Error processing Delete: %v", err))
 		return
 	}
 
 	// Return
-	res := GlobalStateDeleteRemoteResponse{}
+	res := DeleteRemoteResponse{}
 	if err := json.NewEncoder(ww).Encode(res); err != nil {
-		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateDeleteRemote: Problem encoding response as JSON: %v", err))
+		_AddBadRequestError(ww, fmt.Sprintf("DeleteRemote: Problem encoding response as JSON: %v", err))
 		return
 	}
 }
 
-func (fes *APIServer) GlobalStateDelete(key []byte) error {
+func (gs *GlobalState) Delete(key []byte) error {
 	// If we have a remote node then use that node to fulfill this request.
-	if fes.Config.GlobalStateRemoteNode != "" {
+	if gs.GlobalStateRemoteNode != "" {
 		// TODO: This codepath is currently annoying to test.
 
-		url, json_data, err := fes.CreateGlobalStateDeleteRequest(key)
+		url, json_data, err := gs.CreateDeleteRequest(key)
 		if err != nil {
-			return fmt.Errorf("GlobalStateDelete: Could not construct request: %v", err)
+			return fmt.Errorf("Delete: Could not construct request: %v", err)
 		}
 
 		res, err := http.Post(
@@ -972,11 +1077,11 @@ func (fes *APIServer) GlobalStateDelete(key []byte) error {
 			"application/json", /*contentType*/
 			bytes.NewBuffer(json_data))
 		if err != nil {
-			return fmt.Errorf("GlobalStateDelete: Error processing remote request")
+			return fmt.Errorf("Delete: Error processing remote request")
 		}
 
 		res.Body.Close()
-		//res := GlobalStateDeleteRemoteResponse{}
+		//res := DeleteRemoteResponse{}
 		//json.NewDecoder(resReturned.Body).Decode(&res)
 
 		// No error means nothing to return.
@@ -985,12 +1090,12 @@ func (fes *APIServer) GlobalStateDelete(key []byte) error {
 
 	// If we get here, it means we don't have a remote node so store the
 	// data in our local db.
-	return fes.GlobalStateDB.Update(func(txn *badger.Txn) error {
+	return gs.GlobalStateDB.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
 }
 
-type GlobalStateSeekRemoteRequest struct {
+type SeekRemoteRequest struct {
 	StartPrefix    []byte
 	ValidForPrefix []byte
 	MaxKeyLen      int
@@ -998,16 +1103,16 @@ type GlobalStateSeekRemoteRequest struct {
 	Reverse        bool
 	FetchValues    bool
 }
-type GlobalStateSeekRemoteResponse struct {
+type SeekRemoteResponse struct {
 	KeysFound [][]byte
 	ValsFound [][]byte
 }
 
-func (fes *APIServer) CreateGlobalStateSeekRequest(startPrefix []byte, validForPrefix []byte,
+func (gs *GlobalState) CreateSeekRequest(startPrefix []byte, validForPrefix []byte,
 	maxKeyLen int, numToFetch int, reverse bool, fetchValues bool) (
 	_url string, _json_data []byte, _err error) {
 
-	req := GlobalStateSeekRemoteRequest{
+	req := SeekRemoteRequest{
 		StartPrefix:    startPrefix,
 		ValidForPrefix: validForPrefix,
 		MaxKeyLen:      maxKeyLen,
@@ -1017,26 +1122,27 @@ func (fes *APIServer) CreateGlobalStateSeekRequest(startPrefix []byte, validForP
 	}
 	json_data, err := json.Marshal(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("GlobalStateSeek: Could not marshal JSON: %v", err)
+		return "", nil, fmt.Errorf("Seek: Could not marshal JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s%s?%s=%s",
-		fes.Config.GlobalStateRemoteNode, RoutePathGlobalStateSeekRemote,
-		GlobalStateSharedSecretParam, fes.Config.GlobalStateRemoteSecret)
+		gs.GlobalStateRemoteNode, RoutePathGlobalStateSeekRemote,
+		GlobalStateSharedSecretParam, gs.GlobalStateRemoteSecret)
 
 	return url, json_data, nil
 }
-func (fes *APIServer) GlobalStateSeekRemote(ww http.ResponseWriter, rr *http.Request) {
+
+func (gs *GlobalState) GlobalStateSeekRemote(ww http.ResponseWriter, rr *http.Request) {
 	// Parse the request.
 	decoder := json.NewDecoder(io.LimitReader(rr.Body, MaxRequestBodySizeBytes))
-	requestData := GlobalStateSeekRemoteRequest{}
+	requestData := SeekRemoteRequest{}
 	if err := decoder.Decode(&requestData); err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("GlobalStateSeekRemote: Problem parsing request body: %v", err))
 		return
 	}
 
 	// Call the get function. Note that this may also proxy to another node.
-	keys, values, err := fes.GlobalStateSeek(
+	keys, values, err := gs.Seek(
 		requestData.StartPrefix,
 		requestData.ValidForPrefix,
 		requestData.MaxKeyLen,
@@ -1046,12 +1152,12 @@ func (fes *APIServer) GlobalStateSeekRemote(ww http.ResponseWriter, rr *http.Req
 	)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf(
-			"GlobalStateSeekRemote: Error processing GlobalStateSeek: %v", err))
+			"GlobalStateSeekRemote: Error processing Seek: %v", err))
 		return
 	}
 
 	// Return
-	res := GlobalStateSeekRemoteResponse{
+	res := SeekRemoteResponse{
 		KeysFound: keys,
 		ValsFound: values,
 	}
@@ -1061,15 +1167,14 @@ func (fes *APIServer) GlobalStateSeekRemote(ww http.ResponseWriter, rr *http.Req
 	}
 }
 
-func (fes *APIServer) GlobalStateSeek(startPrefix []byte, validForPrefix []byte,
+func (gs *GlobalState) Seek(startPrefix []byte, validForPrefix []byte,
 	maxKeyLen int, numToFetch int, reverse bool, fetchValues bool) (
 	_keysFound [][]byte, _valsFound [][]byte, _err error) {
 
 	// If we have a remote node then use that node to fulfill this request.
-	if fes.Config.GlobalStateRemoteNode != "" {
+	if gs.GlobalStateRemoteNode != "" {
 		// TODO: This codepath is currently annoying to test.
-
-		url, json_data, err := fes.CreateGlobalStateSeekRequest(
+		url, json_data, err := gs.CreateSeekRequest(
 			startPrefix,
 			validForPrefix,
 			maxKeyLen,
@@ -1078,7 +1183,7 @@ func (fes *APIServer) GlobalStateSeek(startPrefix []byte, validForPrefix []byte,
 			fetchValues)
 		if err != nil {
 			return nil, nil, fmt.Errorf(
-				"GlobalStateSeek: Error constructing request: %v", err)
+				"Seek: Error constructing request: %v", err)
 		}
 
 		resReturned, err := http.Post(
@@ -1086,10 +1191,10 @@ func (fes *APIServer) GlobalStateSeek(startPrefix []byte, validForPrefix []byte,
 			"application/json", /*contentType*/
 			bytes.NewBuffer(json_data))
 		if err != nil {
-			return nil, nil, fmt.Errorf("GlobalStateSeek: Error processing remote request")
+			return nil, nil, fmt.Errorf("Seek: Error processing remote request")
 		}
 
-		res := GlobalStateSeekRemoteResponse{}
+		res := SeekRemoteResponse{}
 		json.NewDecoder(resReturned.Body).Decode(&res)
 		resReturned.Body.Close()
 
@@ -1098,10 +1203,10 @@ func (fes *APIServer) GlobalStateSeek(startPrefix []byte, validForPrefix []byte,
 
 	// If we get here, it means we don't have a remote node so get the
 	// data from our local db.
-	retKeys, retVals, err := lib.DBGetPaginatedKeysAndValuesForPrefix(fes.GlobalStateDB, startPrefix,
+	retKeys, retVals, err := lib.DBGetPaginatedKeysAndValuesForPrefix(gs.GlobalStateDB, startPrefix,
 		validForPrefix, maxKeyLen, numToFetch, reverse, fetchValues)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GlobalStateSeek: Error getting paginated keys and values: %v", err)
+		return nil, nil, fmt.Errorf("Seek: Error getting paginated keys and values: %v", err)
 	}
 
 	return retKeys, retVals, nil

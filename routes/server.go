@@ -60,22 +60,27 @@ const (
 	RoutePathAppendExtraData          = "/api/v0/append-extra-data"
 	RoutePathGetTransactionSpending   = "/api/v0/get-transaction-spending"
 
-	// user.go
-	RoutePathGetUsersStateless        = "/api/v0/get-users-stateless"
-	RoutePathDeleteIdentities         = "/api/v0/delete-identities"
-	RoutePathGetProfiles              = "/api/v0/get-profiles"
-	RoutePathGetSingleProfile         = "/api/v0/get-single-profile"
-	RoutePathGetSingleProfilePicture  = "/api/v0/get-single-profile-picture"
-	RoutePathGetHodlersForPublicKey   = "/api/v0/get-hodlers-for-public-key"
-	RoutePathGetDiamondsForPublicKey  = "/api/v0/get-diamonds-for-public-key"
-	RoutePathGetFollowsStateless      = "/api/v0/get-follows-stateless"
-	RoutePathGetUserGlobalMetadata    = "/api/v0/get-user-global-metadata"
-	RoutePathUpdateUserGlobalMetadata = "/api/v0/update-user-global-metadata"
-	RoutePathGetNotifications         = "/api/v0/get-notifications"
-	RoutePathBlockPublicKey           = "/api/v0/block-public-key"
-	RoutePathIsFollowingPublicKey     = "/api/v0/is-following-public-key"
-	RoutePathIsHodlingPublicKey       = "/api/v0/is-hodling-public-key"
-	RoutePathGetUserDerivedKeys       = "/api/v0/get-user-derived-keys"
+	RoutePathGetUsersStateless           = "/api/v0/get-users-stateless"
+	RoutePathDeleteIdentities            = "/api/v0/delete-identities"
+	RoutePathGetProfiles                 = "/api/v0/get-profiles"
+	RoutePathGetSingleProfile            = "/api/v0/get-single-profile"
+	RoutePathGetSingleProfilePicture     = "/api/v0/get-single-profile-picture"
+	RoutePathGetHodlersForPublicKey      = "/api/v0/get-hodlers-for-public-key"
+	RoutePathGetDiamondsForPublicKey     = "/api/v0/get-diamonds-for-public-key"
+	RoutePathGetFollowsStateless         = "/api/v0/get-follows-stateless"
+	RoutePathGetUserGlobalMetadata       = "/api/v0/get-user-global-metadata"
+	RoutePathUpdateUserGlobalMetadata    = "/api/v0/update-user-global-metadata"
+	RoutePathGetNotifications            = "/api/v0/get-notifications"
+	RoutePathGetUnreadNotificationsCount = "/api/v0/get-unread-notifications-count"
+	RoutePathSetNotificationMetadata     = "/api/v0/set-notification-metadata"
+	RoutePathBlockPublicKey              = "/api/v0/block-public-key"
+	RoutePathIsFollowingPublicKey        = "/api/v0/is-following-public-key"
+	RoutePathIsHodlingPublicKey          = "/api/v0/is-hodling-public-key"
+	RoutePathGetUserDerivedKeys          = "/api/v0/get-user-derived-keys"
+	RoutePathDeletePII                   = "/api/v0/delete-pii"
+	RoutePathGetUserMetadata             = "/api/v0/get-user-metadata"
+	RoutePathGetUsernameForPublicKey     = "/api/v0/get-user-name-for-public-key"
+	RoutePathGetPublicKeyForUsername     = "/api/v0/get-public-key-for-user-name"
 
 	// post.go
 	RoutePathGetPostsStateless      = "/api/v0/get-posts-stateless"
@@ -91,20 +96,21 @@ const (
 	RoutePathGetHotFeed = "/api/v0/get-hot-feed"
 
 	// nft.go
-	RoutePathCreateNFT                = "/api/v0/create-nft"
-	RoutePathUpdateNFT                = "/api/v0/update-nft"
-	RoutePathGetNFTsForUser           = "/api/v0/get-nfts-for-user"
-	RoutePathGetNFTBidsForUser        = "/api/v0/get-nft-bids-for-user"
-	RoutePathCreateNFTBid             = "/api/v0/create-nft-bid"
-	RoutePathAcceptNFTBid             = "/api/v0/accept-nft-bid"
-	RoutePathGetNFTBidsForNFTPost     = "/api/v0/get-nft-bids-for-nft-post"
-	RoutePathGetNFTShowcase           = "/api/v0/get-nft-showcase"
-	RoutePathGetNextNFTShowcase       = "/api/v0/get-next-nft-showcase"
-	RoutePathGetNFTCollectionSummary  = "/api/v0/get-nft-collection-summary"
-	RoutePathGetNFTEntriesForPostHash = "/api/v0/get-nft-entries-for-nft-post"
-	RoutePathTransferNFT              = "/api/v0/transfer-nft"
-	RoutePathAcceptNFTTransfer        = "/api/v0/accept-nft-transfer"
-	RoutePathBurnNFT                  = "/api/v0/burn-nft"
+	RoutePathCreateNFT                 = "/api/v0/create-nft"
+	RoutePathUpdateNFT                 = "/api/v0/update-nft"
+	RoutePathGetNFTsForUser            = "/api/v0/get-nfts-for-user"
+	RoutePathGetNFTBidsForUser         = "/api/v0/get-nft-bids-for-user"
+	RoutePathCreateNFTBid              = "/api/v0/create-nft-bid"
+	RoutePathAcceptNFTBid              = "/api/v0/accept-nft-bid"
+	RoutePathGetNFTBidsForNFTPost      = "/api/v0/get-nft-bids-for-nft-post"
+	RoutePathGetNFTShowcase            = "/api/v0/get-nft-showcase"
+	RoutePathGetNextNFTShowcase        = "/api/v0/get-next-nft-showcase"
+	RoutePathGetNFTCollectionSummary   = "/api/v0/get-nft-collection-summary"
+	RoutePathGetNFTEntriesForPostHash  = "/api/v0/get-nft-entries-for-nft-post"
+	RoutePathGetNFTsCreatedByPublicKey = "/api/v0/get-nfts-created-by-public-key"
+	RoutePathTransferNFT               = "/api/v0/transfer-nft"
+	RoutePathAcceptNFTTransfer         = "/api/v0/accept-nft-transfer"
+	RoutePathBurnNFT                   = "/api/v0/burn-nft"
 
 	// media.go
 	RoutePathUploadImage      = "/api/v0/upload-image"
@@ -129,13 +135,13 @@ const (
 	RoutePathGetJumioStatusForPublicKey        = "/api/v0/get-jumio-status-for-public-key"
 
 	// tutorial.go
-	RoutePathGetTutorialCreators = "/api/v0/get-tutorial-creators"
-	RoutePathStartOrSkipTutorial = "/api/v0/start-or-skip-tutorial"
+	RoutePathGetTutorialCreators  = "/api/v0/get-tutorial-creators"
+	RoutePathStartOrSkipTutorial  = "/api/v0/start-or-skip-tutorial"
+	RoutePathUpdateTutorialStatus = "/api/v0/update-tutorial-status"
 
 	// eth.go
-	RoutePathGetETHBalance     = "/api/v0/get-eth-balance"
-	RoutePathCreateETHTx       = "/api/v0/create-eth-tx"
 	RoutePathSubmitETHTx       = "/api/v0/submit-eth-tx"
+	RoutePathQueryETHRPC       = "/api/v0/query-eth-rpc"
 	RoutePathAdminProcessETHTx = "/api/v0/admin/process-eth-tx"
 
 	// wyre.go
@@ -189,6 +195,8 @@ const (
 	RoutePathAdminGetHotFeedAlgorithm         = "/api/v0/admin/get-hot-feed-algorithm"
 	RoutePathAdminUpdateHotFeedAlgorithm      = "/api/v0/admin/update-hot-feed-algorithm"
 	RoutePathAdminUpdateHotFeedPostMultiplier = "/api/v0/admin/update-hot-feed-post-multiplier"
+	RoutePathAdminUpdateHotFeedUserMultiplier = "/api/v0/admin/update-hot-feed-user-multiplier"
+	RoutePathAdminGetHotFeedUserMultiplier    = "/api/v0/admin/get-hot-feed-user-multiplier"
 
 	// admin_fees.go
 	RoutePathAdminSetTransactionFeeForTransactionType = "/api/v0/admin/set-txn-fee-for-txn-type"
@@ -202,9 +210,13 @@ const (
 	RoutePathAdminUpdateNFTDrop = "/api/v0/admin/update-nft-drop"
 
 	// admin_jumio.go
-	RoutePathAdminResetJumioForPublicKey = "/api/v0/admin/reset-jumio-for-public-key"
-	RoutePathAdminUpdateJumioDeSo        = "/api/v0/admin/update-jumio-deso"
-	RoutePathAdminJumioCallback          = "/api/v0/admin/jumio-callback"
+	RoutePathAdminResetJumioForPublicKey          = "/api/v0/admin/reset-jumio-for-public-key"
+	RoutePathAdminUpdateJumioDeSo                 = "/api/v0/admin/update-jumio-deso"
+	RoutePathAdminUpdateJumioUSDCents             = "/api/v0/admin/update-jumio-usd-cents"
+	RoutePathAdminUpdateJumioKickbackUSDCents     = "/api/v0/admin/update-jumio-kickback-usd-cents"
+	RoutePathAdminJumioCallback                   = "/api/v0/admin/jumio-callback"
+	RoutePathAdminUpdateJumioCountrySignUpBonus   = "/api/v0/admin/update-jumio-country-sign-up-bonus"
+	RoutePathAdminGetAllCountryLevelSignUpBonuses = "/api/v0/admin/get-all-country-level-sign-up-bonuses"
 
 	// admin_referrals.go
 	RoutePathAdminCreateReferralHash        = "/api/v0/admin/create-referral-hash"
@@ -212,6 +224,7 @@ const (
 	RoutePathAdminUpdateReferralHash        = "/api/v0/admin/update-referral-hash"
 	RoutePathAdminUploadReferralCSV         = "/api/v0/admin/upload-referral-csv"
 	RoutePathAdminDownloadReferralCSV       = "/api/v0/admin/download-referral-csv"
+	RoutePathAdminDownloadRefereeCSV        = "/api/v0/admin/download-referee-csv"
 
 	// referrals.go
 	RoutePathGetReferralInfoForUser         = "/api/v0/get-referral-info-for-user"
@@ -221,6 +234,17 @@ const (
 	RoutePathAdminUpdateTutorialCreators = "/api/v0/admin/update-tutorial-creators"
 	RoutePathAdminResetTutorialStatus    = "/api/v0/admin/reset-tutorial-status"
 	RoutePathAdminGetTutorialCreators    = "/api/v0/admin/get-tutorial-creators"
+
+	// expose_global_state.go
+	RoutePathGetVerifiedUsernames     = "/api/v0/get-verified-usernames"
+	RoutePathGetBlacklistedPublicKeys = "/api/v0/get-blacklisted-public-keys"
+	RoutePathGetGraylistedPublicKeys  = "/api/v0/get-graylisted-public-keys"
+	RoutePathGetGlobalFeed            = "/api/v0/get-global-feed"
+
+	// supply.go
+	RoutePathGetTotalSupply       = "/api/v0/total-supply"
+	RoutePathGetRichList          = "/api/v0/rich-list"
+	RoutePathGetCountKeysWithDESO = "/api/v0/count-keys-with-deso"
 )
 
 // APIServer provides the interface between the blockchain and things like the
@@ -245,7 +269,7 @@ type APIServer struct {
 	// a remote node is set-- not both. When a remote node is set, global state
 	// is set and fetched from that node. Otherwise, it is set/fetched from the
 	// db. This makes it easy to run a local node in development.
-	GlobalStateDB *badger.DB
+	GlobalState *GlobalState
 
 	// Optional, may be empty. Used for Twilio integration
 	Twilio *twilio.Client
@@ -277,18 +301,56 @@ type APIServer struct {
 	HotFeedBlockHeight uint32
 	// Map of whitelisted post hashes used for serving the hot feed.
 	// The float64 value is a multiplier than can be modified and used in scoring.
-	HotFeedApprovedPostsToMultipliers map[lib.BlockHash]float64
-	LastHotFeedOpProcessedTstampNanos uint64
+	HotFeedApprovedPostsToMultipliers             map[lib.BlockHash]float64
+	LastHotFeedApprovedPostOpProcessedTstampNanos uint64
+	// Multipliers applied to individual PKIDs to help node operators better fit their
+	// hot feed to the type of content they would like to display.
+	HotFeedPKIDMultipliers                          map[lib.PKID]*HotFeedPKIDMultiplier
+	LastHotFeedPKIDMultiplierOpProcessedTstampNanos uint64
 	// Constants for the hotness score algorithm.
 	HotFeedInteractionCap        uint64
 	HotFeedTimeDecayBlocks       uint64
 	HotFeedPostMultiplierUpdated bool
+	HotFeedPKIDMultiplierUpdated bool
 
 	//Map of transaction type to []*lib.DeSoOutput that represent fees assessed on each transaction of that type.
 	TransactionFeeMap map[lib.TxnType][]*lib.DeSoOutput
 
 	// Map of public keys that are exempt from node fees
 	ExemptPublicKeyMap map[string]interface{}
+
+	// Global State cache
+
+	// VerifiedUsernameToPKIDMap is a map of lowercase usernames to PKIDs representing the current state of
+	// verifications this node is recognizing.
+	VerifiedUsernameToPKIDMap map[string]*lib.PKID
+	// BlacklistedPKIDMap is a map of PKID to a byte slice representing the PKID of a user as the key and the current
+	// blacklist state of that user as the key. If a PKID is not present in this map, then the user is NOT blacklisted.
+	BlacklistedPKIDMap map[lib.PKID][]byte
+	// BlacklistedResponseMap is a map of PKIDs converted to base58-encoded string to a byte slice. This is computed
+	// from the BlacklistedPKIDMap above and is a JSON-encodable version of that map. This map is only used when
+	// responding to requests for this node's blacklist. A JSON-encoded response is easier for any language to digest
+	// than a gob-encoded one.
+	BlacklistedResponseMap map[string][]byte
+	// GraylistedPKIDMap is a map of PKID to a byte slice representing the PKID of a user as the key and the current
+	// graylist state of that user as the key. If a PKID is not present in this map, then the user is NOT graylisted.
+	GraylistedPKIDMap map[lib.PKID][]byte
+	// GraylistedResponseMap is a map of PKIDs converted to base58-encoded string to a byte slice. This is computed
+	// from the GraylistedPKIDMap above and is a JSON-encodable version of that map. This map is only used when
+	// responding to requests for this node's graylist. A JSON-encoded response is easier for any language to digest
+	// than a gob-encoded one.
+	GraylistedResponseMap map[string][]byte
+	// GlobalFeedPostHashes is a slice of BlockHashes representing the state of posts on the global feed on this node.
+	GlobalFeedPostHashes []*lib.BlockHash
+
+	// Cache of Total Supply and Rich List
+	TotalSupplyNanos  uint64
+	TotalSupplyDESO   float64
+	RichList          []RichListEntryResponse
+	CountKeysWithDESO uint64
+
+	// map of country name to sign up bonus data
+	AllCountryLevelSignUpBonuses map[string]CountrySignUpBonusResponse
 
 	// Signals that the frontend server is in a stopped state
 	quit chan struct{}
@@ -314,7 +376,13 @@ func NewAPIServer(
 	blockCypherAPIKey string,
 ) (*APIServer, error) {
 
-	if globalStateDB == nil && config.GlobalStateRemoteNode == "" {
+	globalState := &GlobalState{
+		GlobalStateRemoteSecret: config.GlobalStateRemoteSecret,
+		GlobalStateRemoteNode:   config.GlobalStateRemoteNode,
+		GlobalStateDB:           globalStateDB,
+	}
+
+	if globalStateDB == nil && globalState.GlobalStateRemoteNode == "" {
 		return nil, fmt.Errorf(
 			"NewAPIServer: Error: A globalStateDB or a globalStateRemoteNode is required")
 	}
@@ -333,15 +401,16 @@ func NewAPIServer(
 		TXIndex:                   txIndex,
 		Params:                    params,
 		Config:                    config,
-		GlobalStateDB:             globalStateDB,
 		Twilio:                    twilio,
 		BlockCypherAPIKey:         blockCypherAPIKey,
+		GlobalState:               globalState,
 		LastTradeDeSoPriceHistory: []LastTradePriceHistoryItem{},
 		PublicKeyBase58Prefix:     publicKeyBase58Prefix,
 		// We consider last trade prices from the last hour when determining the current price of DeSo.
 		// This helps prevents attacks that attempt to purchase $DESO at below market value.
-		LastTradePriceLookback: uint64(time.Hour.Nanoseconds()),
-		quit:                   make(chan struct{}),
+		LastTradePriceLookback:       uint64(time.Hour.Nanoseconds()),
+		AllCountryLevelSignUpBonuses: make(map[string]CountrySignUpBonusResponse),
+		quit:                         make(chan struct{}),
 	}
 
 	fes.StartSeedBalancesMonitoring()
@@ -362,6 +431,15 @@ func NewAPIServer(
 	if fes.Config.RunHotFeedRoutine {
 		fes.StartHotFeedRoutine()
 	}
+
+	if fes.Config.RunSupplyMonitoringRoutine {
+		fes.StartSupplyMonitoring()
+		fes.UpdateSupplyStats()
+	}
+
+	fes.SetGlobalStateCache()
+	// Kick off Global State Monitoring to set up cache of Verified Username, Blacklist, and Graylist.
+	fes.StartGlobalStateMonitoring()
 
 	return fes, nil
 }
@@ -679,6 +757,13 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
+			"GetNFTsCreatedByPublicKey",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetNFTsCreatedByPublicKey,
+			fes.GetNFTsCreatedByPublicKey,
+			PublicAccess,
+		},
+		{
 			"GetHodlersForPublicKey",
 			[]string{"POST", "OPTIONS"},
 			RoutePathGetHodlersForPublicKey,
@@ -753,6 +838,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"POST", "OPTIONS"},
 			RoutePathGetNotifications,
 			fes.GetNotifications,
+			PublicAccess,
+		},
+		{
+			"GetUnreadNotificationsCount",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetUnreadNotificationsCount,
+			fes.GetNotificationsCount,
+			PublicAccess,
+		},
+		{
+			"SetNotificationMetadata",
+			[]string{"POST", "OPTIONS"},
+			RoutePathSetNotificationMetadata,
+			fes.SetNotificationMetadata,
 			PublicAccess,
 		},
 		{
@@ -839,6 +938,34 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			fes.GetUserDerivedKeys,
 			PublicAccess,
 		},
+		{
+			"DeletePII",
+			[]string{"POST", "OPTIONS"},
+			RoutePathDeletePII,
+			fes.DeletePII,
+			PublicAccess,
+		},
+		{
+			"GetUserMetadata",
+			[]string{"GET"},
+			RoutePathGetUserMetadata + "/{publicKeyBase58Check:[0-9a-zA-Z]{54,55}}",
+			fes.GetUserMetadata,
+			PublicAccess,
+		},
+		{
+			"GetUsernameForPublicKey",
+			[]string{"GET"},
+			RoutePathGetUsernameForPublicKey + "/{publicKeyBase58Check:[0-9a-zA-Z]{54,55}}",
+			fes.GetUsernameForPublicKey,
+			PublicAccess,
+		},
+		{
+			"GetPublicKeyForUsername",
+			[]string{"GET"},
+			RoutePathGetPublicKeyForUsername + "/{username:[a-zA-Z0-9_]{1,26}",
+			fes.GetPublicKeyForUsername,
+			PublicAccess,
+		},
 		// Jumio Routes
 		{
 			"JumioBegin",
@@ -890,22 +1017,15 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			fes.GetTutorialCreators,
 			PublicAccess,
 		},
+		{
+			"UpdateTutorialStatus",
+			[]string{"POST", "OPTIONS"},
+			RoutePathUpdateTutorialStatus,
+			fes.UpdateTutorialStatus,
+			PublicAccess,
+		},
 
 		// ETH Routes
-		{
-			"GetETHBalance",
-			[]string{"POST", "OPTIONS"},
-			RoutePathGetETHBalance,
-			fes.GetETHBalance,
-			PublicAccess,
-		},
-		{
-			"CreateETHTx",
-			[]string{"POST", "OPTIONS"},
-			RoutePathCreateETHTx,
-			fes.CreateETHTx,
-			PublicAccess,
-		},
 		{
 			"SubmitETHTx",
 			[]string{"POST", "OPTIONS"},
@@ -919,6 +1039,13 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			RoutePathAdminProcessETHTx,
 			fes.AdminProcessETHTx,
 			SuperAdminAccess,
+		},
+		{
+			"QueryETHRPC",
+			[]string{"POST", "OPTIONS"},
+			RoutePathQueryETHRPC,
+			fes.QueryETHRPC,
+			PublicAccess,
 		},
 
 		// Begin all /admin routes
@@ -1051,6 +1178,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			SuperAdminAccess,
 		},
 		{
+			"AdminUpdateHotFeedUserMultiplier",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminUpdateHotFeedUserMultiplier,
+			fes.AdminUpdateHotFeedUserMultiplier,
+			SuperAdminAccess,
+		},
+		{
+			"AdminGetHotFeedUserMultiplier",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminGetHotFeedUserMultiplier,
+			fes.AdminGetHotFeedUserMultiplier,
+			SuperAdminAccess,
+		},
+		{
 			"AdminGetUserAdminData",
 			[]string{"POST", "OPTIONS"},
 			RoutePathAdminGetUserAdminData,
@@ -1128,6 +1269,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			SuperAdminAccess,
 		},
 		{
+			"AdminUpdateJumioUSDCents",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminUpdateJumioUSDCents,
+			fes.AdminUpdateJumioUSDCents,
+			SuperAdminAccess,
+		},
+		{
+			"AdminUpdateJumioKickbackUSDCents",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminUpdateJumioKickbackUSDCents,
+			fes.AdminUpdateJumioKickbackUSDCents,
+			SuperAdminAccess,
+		},
+		{
 			"AdminTestSignTransactionWithDerivedKey",
 			[]string{"POST", "OPTIONS"},
 			RoutePathTestSignTransactionWithDerivedKey,
@@ -1140,6 +1295,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			RoutePathAdminJumioCallback,
 			fes.AdminJumioCallback,
 			SuperAdminAccess,
+		},
+		{
+			"AdminUpdateJumioCountrySignUpBonus",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminUpdateJumioCountrySignUpBonus,
+			fes.AdminUpdateJumioCountrySignUpBonus,
+			SuperAdminAccess,
+		},
+		{
+			"AdminGetAllCountryLevelSignUpBonuses",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminGetAllCountryLevelSignUpBonuses,
+			fes.AdminGetAllCountryLevelSignUpBonuses,
+			AdminAccess,
 		},
 		{
 			"AdminCreateReferralHash",
@@ -1167,13 +1336,23 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"POST", "OPTIONS"},
 			RoutePathAdminUploadReferralCSV,
 			fes.AdminUploadReferralCSV,
-			SuperAdminAccess,
+			// Although this says public access here, we validate that the user is indeed a super admin in the handler.
+			// This is to avoid making changes to the existing CheckAdminPublicKey function to support multipart form
+			// content types.
+			PublicAccess,
 		},
 		{
 			"AdminDownloadReferralCSV",
 			[]string{"POST", "OPTIONS"},
 			RoutePathAdminDownloadReferralCSV,
 			fes.AdminDownloadReferralCSV,
+			SuperAdminAccess,
+		},
+		{
+			"AdminDownloadReferralCSV",
+			[]string{"POST", "OPTIONS"},
+			RoutePathAdminDownloadRefereeCSV,
+			fes.AdminDownloadRefereeCSV,
 			SuperAdminAccess,
 		},
 		{
@@ -1360,6 +1539,55 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			fes.WyreWalletOrderSubscription,
 			PublicAccess,
 		},
+		{
+			"GetVerifiedUsernameMap",
+			[]string{"GET"},
+			RoutePathGetVerifiedUsernames,
+			fes.GetVerifiedUsernames,
+			PublicAccess,
+		},
+		{
+			"GetBlacklistedPublicKeys",
+			[]string{"GET"},
+			RoutePathGetBlacklistedPublicKeys,
+			fes.GetBlacklistedPublicKeys,
+			PublicAccess,
+		},
+		{
+			"GetGraylistedPublicKeys",
+			[]string{"GET"},
+			RoutePathGetGraylistedPublicKeys,
+			fes.GetGraylistedPublicKeys,
+			PublicAccess,
+		},
+		{
+			"GetGlobalFeed",
+			[]string{"GET"},
+			RoutePathGetGlobalFeed,
+			fes.GetGlobalFeed,
+			PublicAccess,
+		},
+		{
+			"GetTotalSupply",
+			[]string{"GET"},
+			RoutePathGetTotalSupply,
+			fes.GetTotalSupply,
+			PublicAccess,
+		},
+		{
+			"GetRichList",
+			[]string{"GET"},
+			RoutePathGetRichList,
+			fes.GetRichList,
+			PublicAccess,
+		},
+		{
+			"GetCountKeysWithDESO",
+			[]string{"GET"},
+			RoutePathGetCountKeysWithDESO,
+			fes.GetCountKeysWithDESO,
+			PublicAccess,
+		},
 	}
 
 	router := muxtrace.NewRouter().StrictSlash(true)
@@ -1375,7 +1603,7 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 	// We serve multiple groups of routes from this endpoint.
 	fullRouteList := append([]Route{}, FrontendRoutes...)
 	fullRouteList = append(fullRouteList, fes.APIRoutes()...)
-	fullRouteList = append(fullRouteList, fes.GlobalStateRoutes()...)
+	fullRouteList = append(fullRouteList, fes.GlobalState.GlobalStateRoutes()...)
 
 	for _, route := range fullRouteList {
 		var handler http.Handler
@@ -1423,7 +1651,7 @@ func Logger(inner http.Handler, name string) http.Handler {
 
 		inner.ServeHTTP(w, r)
 
-		glog.Tracef(
+		glog.V(2).Infof(
 			"%s\t%s\t%s\t%s",
 			r.Method,
 			r.RequestURI,
@@ -1431,6 +1659,22 @@ func Logger(inner http.Handler, name string) http.Handler {
 			time.Since(start),
 		)
 	})
+}
+
+var publicRoutes = map[string]interface{}{
+	RoutePathGetJumioStatusForPublicKey:     nil,
+	RoutePathUploadVideo:                    nil,
+	RoutePathGetReferralInfoForReferralHash: nil,
+	RoutePathGetReferralInfoForUser:         nil,
+	RoutePathGetVerifiedUsernames:           nil,
+	RoutePathGetBlacklistedPublicKeys:       nil,
+	RoutePathGetGraylistedPublicKeys:        nil,
+	RoutePathGetGlobalFeed:                  nil,
+	RoutePathDeletePII:                      nil,
+	RoutePathGetUserMetadata:                nil,
+	RoutePathSubmitTransaction:              nil,
+	RoutePathGetTxn:                         nil,
+	RoutePathUpdateProfile:                  nil,
 }
 
 // AddHeaders ...
@@ -1474,19 +1718,28 @@ func AddHeaders(inner http.Handler, allowedOrigins []string) http.Handler {
 			}
 		}
 
+		// Note Content-Type header contains the media type, as well as some additional directives based on media type
+		// (such as boundary for multipart media types and charset to indicate string encoding).
 		contentType := r.Header.Get("Content-Type")
+		mediaType := strings.SplitN(contentType, ";", 2)[0]
 
 		invalidPostRequest := false
 		// upload-image endpoint is the only one allowed to use multipart/form-data
-		if r.RequestURI == RoutePathUploadImage && strings.HasPrefix(contentType, "multipart/form-data") {
+		if (r.RequestURI == RoutePathUploadImage || r.RequestURI == RoutePathAdminUploadReferralCSV) &&
+			mediaType == "multipart/form-data" {
 			match = true
 			actualOrigin = "*"
-		} else if r.RequestURI == RoutePathGetJumioStatusForPublicKey || r.RequestURI == RoutePathUploadVideo || r.RequestURI == RoutePathGetVideoStatus {
-			// We set the headers for all requests to GetJumioStatusForPublicKey, UploadVideo, and GetVideoStatus.
+		} else if _, exists := publicRoutes[r.RequestURI]; exists {
+			// We set the headers for all requests to public routes.
 			// This allows third-party frontends to access this endpoint
 			match = true
 			actualOrigin = "*"
-		} else if r.Method == "POST" && contentType != "application/json" && r.RequestURI != RoutePathJumioCallback {
+		} else if strings.HasPrefix(r.RequestURI, RoutePathGetVideoStatus) || strings.HasPrefix(r.RequestURI, RoutePathGetUserMetadata) {
+			// We don't match the RoutePathGetVideoStatus and RoutePathGetUserMetadata paths exactly since there is a
+			// variable param. Check for the prefix instead.
+			match = true
+			actualOrigin = "*"
+		} else if r.Method == "POST" && mediaType != "application/json" && r.RequestURI != RoutePathJumioCallback {
 			invalidPostRequest = true
 		}
 
@@ -1535,6 +1788,13 @@ type AdminRequest struct {
 // CheckSecret ...
 func (fes *APIServer) CheckAdminPublicKey(inner http.Handler, AccessLevel AccessLevel) http.Handler {
 	return http.HandlerFunc(func(ww http.ResponseWriter, req *http.Request) {
+		// If the only entry is a "*" we exit immediately
+		if (len(fes.Config.AdminPublicKeys) == 1 && fes.Config.AdminPublicKeys[0] == "*") ||
+			(len(fes.Config.SuperAdminPublicKeys) == 1 && fes.Config.SuperAdminPublicKeys[0] == "*") {
+			inner.ServeHTTP(ww, req)
+			return
+		}
+
 		requestData := AdminRequest{}
 
 		if req.Body == nil {
@@ -1575,7 +1835,7 @@ func (fes *APIServer) CheckAdminPublicKey(inner http.Handler, AccessLevel Access
 		// If this a regular admin endpoint, we iterate through all the admin public keys.
 		if AccessLevel == AdminAccess {
 			for _, adminPubKey := range fes.Config.AdminPublicKeys {
-				if adminPubKey == requestData.AdminPublicKey || adminPubKey == "*" {
+				if adminPubKey == requestData.AdminPublicKey {
 					// We found a match, serve the request
 					inner.ServeHTTP(ww, req)
 					return
@@ -1585,7 +1845,7 @@ func (fes *APIServer) CheckAdminPublicKey(inner http.Handler, AccessLevel Access
 
 		// We also check super admins, as they have a superset of capabilities.
 		for _, superAdminPubKey := range fes.Config.SuperAdminPublicKeys {
-			if superAdminPubKey == requestData.AdminPublicKey || superAdminPubKey == "*" {
+			if superAdminPubKey == requestData.AdminPublicKey {
 				// We found a match, serve the request
 				inner.ServeHTTP(ww, req)
 				return
@@ -1739,8 +1999,8 @@ func (fes *APIServer) StartSeedBalancesMonitoring() {
 					return
 				}
 				tags := []string{}
-				fes.logBalanceForSeed(fes.Config.StarterDeSoSeed, "STARTER_DESO", tags)
-				fes.logBalanceForSeed(fes.Config.BuyDeSoSeed, "BUY_DESO", tags)
+				fes.logBalanceForSeed(fes.Config.StarterDESOSeed, "STARTER_DESO", tags)
+				fes.logBalanceForSeed(fes.Config.BuyDESOSeed, "BUY_DESO", tags)
 			case <-fes.quit:
 				break out
 			}
@@ -1781,4 +2041,87 @@ func (fes *APIServer) getBalanceForSeed(seedPhrase string) (uint64, error) {
 		return 0, fmt.Errorf("GetBalanceForSeed: Error getting balance: %v", err)
 	}
 	return currentBalanceNanos, nil
+}
+
+// StartGlobalStateMonitoring begins monitoring Verified, Blacklisted, and Graylisted users and Global Feed Posts
+func (fes *APIServer) StartGlobalStateMonitoring() {
+	go func() {
+	out:
+		for {
+			select {
+			case <-time.After(1 * time.Minute):
+				fes.SetGlobalStateCache()
+			case <-fes.quit:
+				break out
+			}
+		}
+	}()
+}
+
+func (fes *APIServer) SetGlobalStateCache() {
+	utxoView, err := fes.backendServer.GetMempool().GetAugmentedUniversalView()
+	if err != nil {
+		glog.Errorf("SetGlobalStateCache: problem with GetAugmentedUniversalView: %v", err)
+		return
+	}
+	fes.SetVerifiedUsernameMap()
+	fes.SetBlacklistedPKIDMap(utxoView)
+	fes.SetGraylistedPKIDMap(utxoView)
+	fes.SetGlobalFeedPostHashes()
+	fes.SetAllCountrySignUpBonusMetadata()
+}
+
+func (fes *APIServer) SetVerifiedUsernameMap() {
+	verifiedPKIDMap, err := fes.GetVerifiedUsernameMap()
+	if err != nil {
+		glog.Errorf("SetVerifiedUsernameMap: Error getting verified username map: %v", err)
+	} else {
+		fes.VerifiedUsernameToPKIDMap = verifiedPKIDMap
+	}
+}
+
+func (fes *APIServer) SetBlacklistedPKIDMap(utxoView *lib.UtxoView) {
+	blacklistMap, err := fes.GetBlacklist(utxoView)
+	if err != nil {
+		glog.Errorf("SetBlacklistedPKIDMap: Error getting blacklist: %v", err)
+	} else {
+		fes.BlacklistedPKIDMap = blacklistMap
+		// We keep a JSON-encodable version of the blacklist map ready to send to nodes that wish to connect to this
+		// node's global state. Sending a JSON-encoded version is preferable over a gob-encoded one so that any
+		// language can easily decode the response.
+		fes.BlacklistedResponseMap = fes.makePKIDMapJSONEncodable(blacklistMap)
+	}
+}
+
+func (fes *APIServer) SetGraylistedPKIDMap(utxoView *lib.UtxoView) {
+	graylistMap, err := fes.GetGraylist(utxoView)
+	if err != nil {
+		glog.Errorf("SetGraylistedPKIDMap: Error getting graylist: %v", err)
+	} else {
+		fes.GraylistedPKIDMap = graylistMap
+		// We keep a JSON-encodable version of the graylist map ready to send to nodes that wish to connect to this
+		// node's global state. Sending a JSON-encoded version is preferable over a gob-encoded one so that any
+		// language can easily decode the response.
+		fes.GraylistedResponseMap = fes.makePKIDMapJSONEncodable(graylistMap)
+	}
+}
+
+func (fes *APIServer) SetGlobalFeedPostHashes() {
+	postHashes, err := fes.GetGlobalFeedCache()
+	if err != nil {
+		glog.Errorf("SetGlobalFeedPostHashes: Error getting global feed post hashes: %v", err)
+	} else {
+		fes.GlobalFeedPostHashes = postHashes
+	}
+}
+
+// makePKIDMapJSONEncodable converts a map that has PKID keys into Base58-encoded strings.
+// Using gob-encoding when sending responses would make using this API difficult to interact with when using any
+// language other than go.
+func (fes *APIServer) makePKIDMapJSONEncodable(restrictedKeysMap map[lib.PKID][]byte) map[string][]byte {
+	outputMap := make(map[string][]byte)
+	for k, v := range restrictedKeysMap {
+		outputMap[lib.PkToString(k.ToBytes(), fes.Params)] = v
+	}
+	return outputMap
 }

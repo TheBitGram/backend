@@ -135,6 +135,7 @@ func init() {
 	runCmd.PersistentFlags().String("buy-deso-btc-address", "", "BTC Address for all Wyre Wallet Orders and 'Buy With BTC' purchases")
 	runCmd.PersistentFlags().String("buy-deso-seed", "", "Seed phrase from which DeSo will be sent for orders placed through Wyre and 'Buy With BTC' purchases")
 	runCmd.PersistentFlags().String("buy-deso-eth-address", "", "ETH Address for all 'Buy With ETH' purchases")
+	runCmd.PersistentFlags().String("infura-project-id", "", "Project ID for Infura requests")
 
 	// Email
 	runCmd.PersistentFlags().String("sendgrid-api-key", "", "Sendgrid API key")
@@ -151,6 +152,16 @@ func init() {
 	// Video Upload
 	runCmd.PersistentFlags().String("cloudflare-stream-token", "", "API Token with Edit access to Cloudflare's stream service")
 	runCmd.PersistentFlags().String("cloudflare-account-id", "", "Cloudflare Account ID")
+
+	// Global State
+	runCmd.PersistentFlags().Bool("expose-global-state", false, "Expose global state data to all origins")
+	runCmd.PersistentFlags().String("global-state-api-url", "", "URL to use to fetch global state data. Only used if expose-global-state is false. If not provided, use own global state.")
+
+	// Run Supply Monitoring Routine
+	runCmd.PersistentFlags().Bool("run-supply-monitoring-routine", false, "Run a goroutine to monitor total supply and rich list")
+
+	// Tag transaction with node source
+	runCmd.PersistentFlags().Uint64("node-source", 0, "Node ID to tag transaction with. Maps to ../core/lib/nodes.go")
 
 	runCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
 		viper.BindPFlag(flag.Name, flag)
