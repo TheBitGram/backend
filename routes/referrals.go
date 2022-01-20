@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/deso-protocol/core/lib"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/deso-protocol/core/lib"
 )
 
 type GetReferralInfoForUserRequest struct {
@@ -50,7 +50,7 @@ func (fes *APIServer) GetReferralInfoForUser(ww http.ResponseWriter, req *http.R
 	}
 
 	// Get the referral link info structs.
-	referralInfoResponses, err := fes.getReferralInfoResponsesForPubKey(publicKeyBytes)
+	referralInfoResponses, err := fes.getReferralInfoResponsesForPubKey(publicKeyBytes, false /*includeReferredUsers*/)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("GetReferralInfoForUser: Problem putting new referral hash and info: %v", err))
 		return
@@ -72,6 +72,7 @@ type GetReferralInfoForReferralHashRequest struct {
 
 type GetReferralInfoForReferralHashResponse struct {
 	ReferralInfoResponse *SimpleReferralInfoResponse
+	CountrySignUpBonus   CountryLevelSignUpBonus
 }
 
 func (fes *APIServer) GetReferralInfoForReferralHash(ww http.ResponseWriter, req *http.Request) {
@@ -90,17 +91,18 @@ func (fes *APIServer) GetReferralInfoForReferralHash(ww http.ResponseWriter, req
 	}
 
 	simpleReferralInfo := SimpleReferralInfo{
-		ReferralHashBase58: referralInfo.ReferralHashBase58,
+		ReferralHashBase58:    referralInfo.ReferralHashBase58,
 		RefereeAmountUSDCents: referralInfo.RefereeAmountUSDCents,
-		MaxReferrals: referralInfo.MaxReferrals,
-		TotalReferrals: referralInfo.TotalReferrals,
+		MaxReferrals:          referralInfo.MaxReferrals,
+		TotalReferrals:        referralInfo.TotalReferrals,
 	}
 
 	res := GetReferralInfoForReferralHashResponse{
 		ReferralInfoResponse: &SimpleReferralInfoResponse{
-			Info: simpleReferralInfo,
+			Info:     simpleReferralInfo,
 			IsActive: fes.getReferralHashStatus(referralInfo.ReferrerPKID, referralInfo.ReferralHashBase58),
 		},
+		CountrySignUpBonus: fes.GetCountryLevelSignUpBonusFromHeader(req),
 	}
 
 	if err = json.NewEncoder(ww).Encode(res); err != nil {
