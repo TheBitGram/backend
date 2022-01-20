@@ -4,7 +4,7 @@ locals {
   aws_region        = "us-east-1"
   environment_name  = "stage"
   namespace         = "app"
-  fullnameOverride  = "gem-backend"
+  fullnameOverride  = "gem-backend-backup"
   replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.3"
@@ -17,7 +17,7 @@ locals {
     ops_env              = "stage"
     ops_managed_by       = "terraform",
     ops_source_repo      = "kubernetes-ops",
-    ops_source_repo_path = "terraform-environments/aws/stage/write-node/",
+    ops_source_repo_path = "terraform-environments/aws/stage/",
     ops_owners           = "example-app",
   }
 }

@@ -40,7 +40,7 @@ const (
 	RoutePathGetQuoteRecloutsForPost = "/api/v0/get-quote-reclouts-for-post" // Deprecated
 
 	// base.go
-	RoutePathHealthCheck     = "/api2/v0/health-check"
+	RoutePathHealthCheck     = "/api/v0/health-check"
 	RoutePathGetExchangeRate = "/api/v0/get-exchange-rate"
 	RoutePathGetAppState     = "/api/v0/get-app-state"
 

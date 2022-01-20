@@ -2,21 +2,22 @@
 
 locals {
   aws_region        = "us-east-1"
-  environment_name  = "dev"
+  environment_name  = "stage"
   namespace         = "app"
   fullnameOverride  = "gem-backend"
   replica_count     = 1
-  docker_repository = "067550988196.dkr.ecr.us-east-1.amazonaws.com/backend"
+  docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "pr-38"
   requests_memory   = "100Gi"
   requests_cpu      = "60"
   # put me on the big boy
 
+
   tags = {
-    ops_env              = "dev"
+    ops_env              = "stage"
     ops_managed_by       = "terraform",
     ops_source_repo      = "kubernetes-ops",
-    ops_source_repo_path = "terraform-environments/aws/dev",
+    ops_source_repo_path = "terraform-environments/aws/stage/",
     ops_owners           = "example-app",
   }
 }
@@ -27,6 +28,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 3.37.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.4.0"
+    }
     random = {
       source = "hashicorp/random"
     }
@@ -36,7 +41,7 @@ terraform {
     organization = "gem-engineering"
 
     workspaces {
-      name = "kubernetes-ops-dev-pearl-backend"
+      name = "kubernetes-ops-stage-pearl-backend"
     }
   }
 }
@@ -50,17 +55,7 @@ data "terraform_remote_state" "eks" {
   config = {
     organization = "gem-engineering"
     workspaces = {
-      name = "kubernetes-ops-dev-20-eks"
-    }
-  }
-}
-
-data "terraform_remote_state" "rds" {
-  backend = "remote"
-  config = {
-    organization = "gem-engineering"
-    workspaces = {
-      name = "kubernetes-ops-dev-21-postgres"
+      name = "kubernetes-ops-stage-20-eks"
     }
   }
 }
@@ -88,14 +83,14 @@ data "template_file" "helm_values" {
     replica_count     = local.replica_count
     docker_repository = local.docker_repository
     docker_tag        = local.docker_tag
-    requests_cpu      = local.requests_cpu
     requests_memory   = local.requests_memory
-    pg_name           = data.terraform_remote_state.rds.outputs.pg_name
-    pg_hostname       = data.terraform_remote_state.rds.outputs.pg_hostname
-    pg_port           = data.terraform_remote_state.rds.outputs.pg_port
-    pg_username       = data.terraform_remote_state.rds.outputs.pg_username
+    requests_cpu      = local.requests_cpu
+    pg_name           = "foo" # data.terraform_remote_state.rds.outputs.pg_name
+    pg_hostname       = "foo" # data.terraform_remote_state.rds.outputs.pg_hostname
+    pg_port           = "foo" # data.terraform_remote_state.rds.outputs.pg_port
+    pg_username       = "foo" # data.terraform_remote_state.rds.outputs.pg_username
     pg_password       = var.pg_password
-    sqs_uri           = var.sqs_uri
+    sqs_uri           = "https://sqs.us-east-1.amazonaws.com/283278994941/transactions-input"
   }
 }
 

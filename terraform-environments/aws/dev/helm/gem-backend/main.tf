@@ -4,7 +4,7 @@ locals {
   aws_region        = "us-east-1"
   environment_name  = "dev"
   namespace         = "app"
-  fullnameOverride  = "gem-backend"
+  fullnameOverride  = "gem-backend-backup"
   replica_count     = 1
   docker_repository = "067550988196.dkr.ecr.us-east-1.amazonaws.com/backend"
   docker_tag        = "v1.2.7"
