@@ -4,10 +4,10 @@ locals {
   aws_region        = "us-east-1"
   environment_name  = "stage"
   namespace         = "app"
-  fullnameOverride  = "gem-backend-backup"
+  fullnameOverride  = "gem-backend"
   replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
-  docker_tag        = "v1.2.3"
+  docker_tag        = "v2.0.0"
   requests_memory   = "100Gi"
   requests_cpu      = "60"
   # put me on the big boy
