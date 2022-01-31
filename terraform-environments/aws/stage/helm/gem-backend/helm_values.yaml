@@ -37,6 +37,8 @@ deployment:
           value: "/etc/backend-volume"
         - name: SQS_URI
           value: "${sqs_uri}"
+        - name: GLOBAL_STATE_API_URL
+          value: "https://node.deso.org"
       perEnv: [ ]
     ports:
     - name: http1
