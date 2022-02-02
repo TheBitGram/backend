@@ -57,6 +57,8 @@ const (
 	RoutePathTransferCreatorCoin      = "/api/v0/transfer-creator-coin"
 	RoutePathSendDiamonds             = "/api/v0/send-diamonds"
 	RoutePathAuthorizeDerivedKey      = "/api/v0/authorize-derived-key"
+	RoutePathDAOCoin                  = "/api/v0/dao-coin"
+	RoutePathTransferDAOCoin          = "/api/v0/transfer-dao-coin"
 	RoutePathAppendExtraData          = "/api/v0/append-extra-data"
 	RoutePathGetTransactionSpending   = "/api/v0/get-transaction-spending"
 
@@ -119,10 +121,13 @@ const (
 	RoutePathGetVideoStatus   = "/api/v0/get-video-status"
 
 	// message.go
-	RoutePathSendMessageStateless    = "/api/v0/send-message-stateless"
-	RoutePathGetMessagesStateless    = "/api/v0/get-messages-stateless"
-	RoutePathMarkContactMessagesRead = "/api/v0/mark-contact-messages-read"
-	RoutePathMarkAllMessagesRead     = "/api/v0/mark-all-messages-read"
+	RoutePathSendMessageStateless       = "/api/v0/send-message-stateless"
+	RoutePathGetMessagesStateless       = "/api/v0/get-messages-stateless"
+	RoutePathMarkContactMessagesRead    = "/api/v0/mark-contact-messages-read"
+	RoutePathMarkAllMessagesRead        = "/api/v0/mark-all-messages-read"
+	RoutePathRegisterMessagingGroupKey = "/api/v0/register-messaging-group-key"
+	RoutePathGetAllMessagingGroupKeys   = "/api/v0/get-all-messaging-group-keys"
+	RoutePathCheckPartyMessagingKeys    = "/api/v0/check-party-messaging-keys"
 
 	// verify.go
 	RoutePathSendPhoneNumberVerificationText   = "/api/v0/send-phone-number-verification-text"
@@ -820,6 +825,20 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
+			"DAOCoin",
+			[]string{"POST", "OPTIONS"},
+			RoutePathDAOCoin,
+			fes.DAOCoin,
+			PublicAccess,
+		},
+		{
+			"TransferDAOCoin",
+			[]string{"POST", "OPTIONS"},
+			RoutePathTransferDAOCoin,
+			fes.TransferDAOCoin,
+			PublicAccess,
+		},
+		{
 			"AppendExtraData",
 			[]string{"POST", "OPTIONS"},
 			RoutePathAppendExtraData,
@@ -1475,6 +1494,27 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"POST", "OPTIONS"},
 			RoutePathMarkAllMessagesRead,
 			fes.MarkAllMessagesRead,
+			PublicAccess,
+		},
+		{
+			"RegisterMessagingGroupKey",
+			[]string{"POST", "OPTIONS"},
+			RoutePathRegisterMessagingGroupKey,
+			fes.RegisterMessagingGroupKey,
+			PublicAccess,
+		},
+		{
+			"GetAllMessagingGroupKeys",
+			[]string{"POST", "OPTIONS"},
+			RoutePathGetAllMessagingGroupKeys,
+			fes.GetAllMessagingGroupKeys,
+			PublicAccess,
+		},
+		{
+			"CheckPartyMessagingKeys",
+			[]string{"POST", "OPTIONS"},
+			RoutePathCheckPartyMessagingKeys,
+			fes.CheckPartyMessagingKeys,
 			PublicAccess,
 		},
 
