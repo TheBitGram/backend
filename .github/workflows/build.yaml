@@ -82,7 +82,7 @@ jobs:
           context: .
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: test-core1
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Dev - Image digest
