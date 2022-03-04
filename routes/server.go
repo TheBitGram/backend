@@ -113,6 +113,7 @@ const (
 	RoutePathTransferNFT               = "/api/v0/transfer-nft"
 	RoutePathAcceptNFTTransfer         = "/api/v0/accept-nft-transfer"
 	RoutePathBurnNFT                   = "/api/v0/burn-nft"
+	RoutePathGetAcceptedBidHistory     = "/api/v0/accepted-bid-history"
 
 	// media.go
 	RoutePathUploadImage      = "/api/v0/upload-image"
@@ -356,6 +357,12 @@ type APIServer struct {
 
 	// map of country name to sign up bonus data
 	AllCountryLevelSignUpBonuses map[string]CountrySignUpBonusResponse
+
+	// Frequently accessed data from global state
+	USDCentsToDESOReserveExchangeRate uint64
+	BuyDESOFeeBasisPoints uint64
+	JumioUSDCents uint64
+	JumioKickbackUSDCents uint64
 
 	// Signals that the frontend server is in a stopped state
 	quit chan struct{}
@@ -689,6 +696,13 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			[]string{"POST", "OPTIONS"},
 			RoutePathBurnNFT,
 			fes.BurnNFT,
+			PublicAccess,
+		},
+		{
+			"GetAcceptedBidHistory",
+			[]string{"GET"},
+			RoutePathGetAcceptedBidHistory + "/{postHashHex:[0-9a-zA-Z]{64}}",
+			fes.GetAcceptedBidHistory,
 			PublicAccess,
 		},
 		{
@@ -2109,6 +2123,10 @@ func (fes *APIServer) SetGlobalStateCache() {
 	fes.SetGraylistedPKIDMap(utxoView)
 	fes.SetGlobalFeedPostHashes()
 	fes.SetAllCountrySignUpBonusMetadata()
+	fes.SetUSDCentsToDeSoReserveExchangeRateFromGlobalState()
+	fes.SetBuyDeSoFeeBasisPointsResponseFromGlobalState()
+	fes.SetJumioUSDCents()
+	fes.SetJumioKickbackUSDCents()
 }
 
 func (fes *APIServer) SetVerifiedUsernameMap() {
