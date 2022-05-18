@@ -40,7 +40,6 @@ jobs:
         with:
           repository: TheBitGram/core
           path: core
-          ref: kevin/PEARL-250-pull-in-latest-backend-changes-to-pearl-node
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN_CORE }}
 
 
@@ -82,7 +81,7 @@ jobs:
         with:
           context: .
           file: ./backend/Dockerfile
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
