@@ -78,7 +78,7 @@ ingress:
     # kubernetes.io/tls-acme: "true"
   paths:
     - path: /api
-      servicePort: http2
+      servicePort: 17001
   hosts:
     - api.dev.yourgem.app
     - api.dev.pearl.app
