@@ -45,6 +45,8 @@ deployment:
           value: "${sqs_uri}"
         - name: GLOBAL_STATE_API_URL
           value: "https://node.deso.org"
+        - name: EXPOSE_GLOBAL_STATE
+          value: "true"
       perEnv: [ ]
     ports:
     - name: http1
