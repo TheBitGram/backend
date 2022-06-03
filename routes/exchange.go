@@ -1615,12 +1615,11 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
-	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -2).UnixNano()) // two days ago
 	// For each of these pub keys, get their posts, and load them into the view too
 	for _, followedPubKey := range filteredPubKeysMap {
 
 		_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
-			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, 0, /*maxTimestampNanos*/
+			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, 0 /*minTimestamp*/, 0, /*maxTimestampNanos*/
 		)
 		if err != nil {
 			return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
