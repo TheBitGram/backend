@@ -82,6 +82,7 @@ type Config struct {
 	NodeSource uint64
 
 	// Follow Feed Length
+    FollowFeedInfinite bool
 	FollowFeedLength int
 }
 
@@ -181,6 +182,7 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	config.NodeSource = viper.GetUint64("node-source")
 
 	// Follow Feed Length
+	config.FollowFeedInfinite = viper.GetBool("follow-feed-infinite")
 	config.FollowFeedLength = viper.GetInt("follow-feed-length")
 
 	return &config
