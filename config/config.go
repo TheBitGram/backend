@@ -81,8 +81,8 @@ type Config struct {
 	// ID to tag node source
 	NodeSource uint64
 
-    // Follow Feed Length
-    FollowFeedLength int
+	// Follow Feed Length
+	FollowFeedLength int
 }
 
 func LoadConfig(coreConfig *coreCmd.Config) *Config {
@@ -180,8 +180,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	// Node source ID
 	config.NodeSource = viper.GetUint64("node-source")
 
-    // Follow Feed Length
-    config.FollowFeedLength = viper.GetInt("follow-feed-length")
+	// Follow Feed Length
+	config.FollowFeedLength = viper.GetInt("follow-feed-length")
 
 	return &config
 }
