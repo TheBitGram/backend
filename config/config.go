@@ -80,6 +80,9 @@ type Config struct {
 
 	// ID to tag node source
 	NodeSource uint64
+
+    // Follow Feed Length
+    FollowFeedLength uint64
 }
 
 func LoadConfig(coreConfig *coreCmd.Config) *Config {
