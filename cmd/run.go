@@ -163,6 +163,9 @@ func init() {
 	// Tag transaction with node source
 	runCmd.PersistentFlags().Uint64("node-source", 0, "Node ID to tag transaction with. Maps to ../core/lib/nodes.go")
 
+	// Follow Feed Length
+	runCmd.PersistentFlags().Uint64("follow-feed-length", 2, "Number of days of content to fetch for follow feed")
+
 	runCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
 		viper.BindPFlag(flag.Name, flag)
 	})

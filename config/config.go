@@ -177,5 +177,8 @@ func LoadConfig(coreConfig *coreCmd.Config) *Config {
 	// Node source ID
 	config.NodeSource = viper.GetUint64("node-source")
 
+    // Follow Feed Length
+    config.FollowFeedLength = viper.GetUint64("follow-feed-length")
+
 	return &config
 }
