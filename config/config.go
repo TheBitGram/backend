@@ -82,8 +82,8 @@ type Config struct {
 	NodeSource uint64
 
 	// Follow Feed Length
-    FollowFeedInfinite bool
-	FollowFeedLength int
+	FollowFeedInfinite bool
+	FollowFeedLength   int
 }
 
 func LoadConfig(coreConfig *coreCmd.Config) *Config {
