@@ -1623,9 +1623,6 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
         maxTimestampNanos = maxTimestampNanos.AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()
 	}
 
-	if fes.Config.FollowFeedLength < 0 {
-		minTimestampNanos = 0
-	}
 	// For each of these pub keys, get their posts, and load them into the view too
 	for _, followedPubKey := range filteredPubKeysMap {
 
