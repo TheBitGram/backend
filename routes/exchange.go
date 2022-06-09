@@ -1615,7 +1615,13 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
-	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -fes.Config.FollowFeedLength).UnixNano()) // two days ago
+	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // two days ago
+	maxTimestampNanos := 0
+
+	if startAfterPostHash != nil {
+        maxTimestampNanos = bav.GetPostEntryForPostHash(dbPostOrCommentHash).TimestampNanos
+        maxTimestampNanos = maxTimestampNanos.AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()
+	}
 
 	if fes.Config.FollowFeedLength < 0 {
 		minTimestampNanos = 0

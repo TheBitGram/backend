@@ -164,7 +164,7 @@ func init() {
 	runCmd.PersistentFlags().Uint64("node-source", 0, "Node ID to tag transaction with. Maps to ../core/lib/nodes.go")
 
 	// Follow Feed Length (-1 for infinite)
-	runCmd.PersistentFlags().Int("follow-feed-length", 2, "Number of days of content to fetch for follow feed")
+	runCmd.PersistentFlags().Int("follow-feed-page-length", 2, "Number of days of content to fetch for follow feed for a single page")
 
 	runCmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
 		viper.BindPFlag(flag.Name, flag)
