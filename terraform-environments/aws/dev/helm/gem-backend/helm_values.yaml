@@ -47,8 +47,6 @@ deployment:
           value: "https://node.deso.org"
         - name: EXPOSE_GLOBAL_STATE
           value: "true"
-        - name: FOLLOW_FEED_LENGTH
-          value: "-1"
       perEnv: [ ]
     ports:
     - name: http1
