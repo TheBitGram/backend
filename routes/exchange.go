@@ -1619,7 +1619,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
     n := 1
     for n < 8 {
 
-        hoursToSubtract := math.Pow(4, n)
+        hoursToSubtract := int(math.Pow(4, float(n)))
 
         minTimestampNanos := uint64(time.Now().UTC().AddDate(0, hoursToSubtract, 0).UnixNano()) // two days ago
         maxTimestampNanos := uint64(0)
