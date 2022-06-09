@@ -1620,14 +1620,14 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 
 	if startAfterPostHash != nil {
         maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
-        maxTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+        minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 	}
 
 	// For each of these pub keys, get their posts, and load them into the view too
 	for _, followedPubKey := range filteredPubKeysMap {
 
 		_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
-			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, 0, /*maxTimestampNanos*/
+			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, maxTimestampNanos,
 		)
 		if err != nil {
 			return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
