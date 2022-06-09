@@ -1619,7 +1619,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	maxTimestampNanos := uint64(0)
 
 	if startAfterPostHash != nil {
-        maxTimestampNanos = bav.GetPostEntryForPostHash(dbPostOrCommentHash).TimestampNanos
+        maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
         maxTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 	}
 
