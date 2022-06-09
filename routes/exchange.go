@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sort"
 	"time"
+	"math"
 
 	"github.com/deso-protocol/core/lib"
 
@@ -1615,49 +1616,66 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
-	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // two days ago
-	maxTimestampNanos := uint64(0)
+    n := 1
+    for n < 8 {
 
-	if startAfterPostHash != nil {
-        maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
-        minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
-	}
+        hoursToSubtract := math.Pow(4, n)
 
-	// For each of these pub keys, get their posts, and load them into the view too
-	for _, followedPubKey := range filteredPubKeysMap {
+        minTimestampNanos := uint64(time.Now().UTC().AddDate(0, hoursToSubtract, 0).UnixNano()) // two days ago
+        maxTimestampNanos := uint64(0)
 
-		_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
-			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, maxTimestampNanos,
-		)
-		if err != nil {
-			return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
-		}
+        if startAfterPostHash != nil {
+            maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
+            minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, hoursToSubtract, 0).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+        }
 
-		// Iterate through the entries found in the db and force the view to load them.
-		// This fills in any gaps in the view so that, after this, the view should contain
-		// the union of what it had before plus what was in the db.
-		for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
-			bav.GetPostEntryForPostHash(dbPostOrCommentHash)
-		}
-	}
+        if (n > 6) {
+            minTimestampNanos = 0
+        }
 
-	// Iterate over the view. Put all posts authored by people you follow into an array
-	var postEntriesForFollowFeed []*lib.PostEntry
-	for _, postEntry := range bav.PostHashToPostEntry {
-		// Ignore deleted or hidden posts and any comments.
-		if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
-			continue
-		}
+        // For each of these pub keys, get their posts, and load them into the view too
+        for _, followedPubKey := range filteredPubKeysMap {
 
-		// mediaRequired set to determine if we only want posts that include media and ignore posts without
-		if mediaRequired && !postEntry.HasMedia() {
-			continue
-		}
+            _, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
+                bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, maxTimestampNanos,
+            )
+            if err != nil {
+                return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
+            }
 
-		if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
-			postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
-		}
-	}
+            // Iterate through the entries found in the db and force the view to load them.
+            // This fills in any gaps in the view so that, after this, the view should contain
+            // the union of what it had before plus what was in the db.
+            for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
+                bav.GetPostEntryForPostHash(dbPostOrCommentHash)
+            }
+        }
+
+        // Iterate over the view. Put all posts authored by people you follow into an array
+        var postEntriesForFollowFeed []*lib.PostEntry
+        for _, postEntry := range bav.PostHashToPostEntry {
+            // Ignore deleted or hidden posts and any comments.
+            if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
+                continue
+            }
+
+            // mediaRequired set to determine if we only want posts that include media and ignore posts without
+            if mediaRequired && !postEntry.HasMedia() {
+                continue
+            }
+
+            if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
+                postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
+            }
+        }
+
+        if (len(postEntriesForFollowFeed) > numToFetch) {
+            break
+        }
+        n += 1
+    }
+
+
 
 	// Sort the post entries by time (newest to oldest)
 	sort.Slice(postEntriesForFollowFeed, func(ii, jj int) bool {
