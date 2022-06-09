@@ -1620,7 +1620,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 
 	if startAfterPostHash != nil {
         maxTimestampNanos = bav.GetPostEntryForPostHash(dbPostOrCommentHash).TimestampNanos
-        maxTimestampNanos = maxTimestampNanos.AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()
+        maxTimestampNanos = time.Unix(0, maxTimestampNanos).AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()
 	}
 
 	// For each of these pub keys, get their posts, and load them into the view too
