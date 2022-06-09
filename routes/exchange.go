@@ -1616,7 +1616,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	}
 
 	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -fes.Config.FollowFeedPageLength).UnixNano()) // two days ago
-	maxTimestampNanos := 0
+	maxTimestampNanos := uint64(0)
 
 	if startAfterPostHash != nil {
         maxTimestampNanos = bav.GetPostEntryForPostHash(dbPostOrCommentHash).TimestampNanos
