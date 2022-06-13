@@ -60,14 +60,14 @@ deployment:
 
     volumeMounts:
     # name must match the volume name below
-    - name: pearl-backend-vol
+    - name: pearl-backend-vol-v2
       mountPath: /etc/backend-volume
 
 
 volumes:
-- name: pearl-backend-vol
+- name: pearl-backend-vol-v2
   persistentVolumeClaim:
-    claimName: pearl-backend-vol
+    claimName: pearl-backend-vol-v2
 
 ingress:
   enabled: true
