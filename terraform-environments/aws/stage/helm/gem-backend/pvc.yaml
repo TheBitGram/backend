@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pearl-backend-vol
+  name: pearl-backend-vol-v2
   namespace: app
 spec:
   accessModes:

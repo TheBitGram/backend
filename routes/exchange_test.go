@@ -567,9 +567,9 @@ func TestAPI(t *testing.T) {
 	var secondBlockTxn *lib.MsgDeSoTxn
 	{
 		blockHash := apiServer.blockchain.BestChain()[1].Hash
-		blockLookup, err := lib.GetBlock(blockHash, apiServer.blockchain.DB())
+		blockLookup, err := lib.GetBlock(blockHash, apiServer.blockchain.DB(), apiServer.blockchain.Snapshot())
 		require.NoError(err)
-		block2Lookup, err := lib.GetBlock(apiServer.blockchain.BestChain()[2].Hash, apiServer.blockchain.DB())
+		block2Lookup, err := lib.GetBlock(apiServer.blockchain.BestChain()[2].Hash, apiServer.blockchain.DB(), apiServer.blockchain.Snapshot())
 
 		firstBlockTxn = blockLookup.Txns[0]
 		secondBlockTxn = block2Lookup.Txns[0]
