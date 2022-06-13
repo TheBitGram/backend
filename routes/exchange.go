@@ -1618,19 +1618,19 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 
     var postEntriesForFollowFeed []*lib.PostEntry
     n := 1
-    for n < 8 {
+    for n < 6 {
+        postEntriesForFollowFeed = nil
+        daysToSubtract := int(math.Pow(4, float64(n)))
 
-        hoursToSubtract := int(math.Pow(4, float64(n)))
-
-        minTimestampNanos := uint64(time.Now().UTC().AddDate(0, hoursToSubtract, 0).UnixNano()) // two days ago
+        minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // two days ago
         maxTimestampNanos := uint64(0)
 
         if startAfterPostHash != nil {
             maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
-            minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, hoursToSubtract, 0).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+            minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
         }
 
-        if (n > 6) {
+        if (n > 4) {
             minTimestampNanos = 0
         }
 
@@ -1672,7 +1672,6 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
         if (len(postEntriesForFollowFeed) > numToFetch) {
             break
         }
-        postEntriesForFollowFeed = nil
         n += 1
     }
 
