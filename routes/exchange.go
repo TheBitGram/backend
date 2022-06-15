@@ -1634,8 +1634,8 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 			maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 		} else {
-			minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
-			maxTimestampNanos := uint64(0)
+			minTimestampNanos = uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
+			maxTimestampNanos = uint64(0)
 		}
 
 		if daysToSubtractExponent >= maxDaysToSubtractExponent {
