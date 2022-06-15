@@ -1619,23 +1619,22 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	}
 
 	var postEntriesForFollowFeed []*lib.PostEntry
-    baseDaysToSubtract := 4
+	baseDaysToSubtract := 4
 	maxDaysToSubtractExponent := 5 // 4^5 = 1024 days
-    for daysToSubtractExponent := 1; daysToSubtractExponent < 6; daysToSubtractExponent++ {
+	for daysToSubtractExponent := 1; daysToSubtractExponent < 6; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(baseDaysToSubtract, float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
 		postsFetched := len(postEntriesForFollowFeed)
 
 		minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
 		maxTimestampNanos := uint64(0)
 
-        if postsFetched > 0 {
-            maxTimestampNanos = postEntriesForFollowFeed[postsFetched - 1].TimestampNanos // set to last fetched
-            minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
-        } else if startAfterPostHash != nil {
+		if postsFetched > 0 {
+			maxTimestampNanos = postEntriesForFollowFeed[postsFetched-1].TimestampNanos                                  // set to last fetched
+			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+		} else if startAfterPostHash != nil {
 			maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 		}
-
 
 		if daysToSubtractExponent >= maxDaysToSubtractExponent {
 			minTimestampNanos = 0 // use entire history
@@ -1675,10 +1674,10 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
 			}
 		}
-        // Sort the post entries by time (newest to oldest)
-        sort.Slice(postEntriesForFollowFeed, func(ii, jj int) bool {
-            return postEntriesForFollowFeed[ii].TimestampNanos > postEntriesForFollowFeed[jj].TimestampNanos
-        })
+		// Sort the post entries by time (newest to oldest)
+		sort.Slice(postEntriesForFollowFeed, func(ii, jj int) bool {
+			return postEntriesForFollowFeed[ii].TimestampNanos > postEntriesForFollowFeed[jj].TimestampNanos
+		})
 
 		if len(postEntriesForFollowFeed) >= numToFetch {
 			break
