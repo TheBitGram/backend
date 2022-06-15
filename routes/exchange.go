@@ -1619,21 +1619,23 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	}
 
 	var postEntriesForFollowFeed []*lib.PostEntry
-	baseDaysToSubtract := 4
-	maxDaysToSubtractExponent := 5 // 4^5 = 1024 days
-	for daysToSubtractExponent := 1; daysToSubtractExponent < 6; daysToSubtractExponent++ {
+	var minTimestampNanos uint64
+	var maxTimestampNanos uint64
+	baseDaysToSubtract := 2
+	maxDaysToSubtractExponent := 10 // 2^10 = 1024 days
+	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
 		postsFetched := len(postEntriesForFollowFeed)
 
-		minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
-		maxTimestampNanos := uint64(0)
-
 		if postsFetched > 0 {
-			maxTimestampNanos = postEntriesForFollowFeed[postsFetched-1].TimestampNanos                                  // set to last fetched
+			maxTimestampNanos = minTimestampNanos                                                                        // set to previous min
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 		} else if startAfterPostHash != nil {
 			maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+		} else {
+			minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
+			maxTimestampNanos := uint64(0)
 		}
 
 		if daysToSubtractExponent >= maxDaysToSubtractExponent {
@@ -1674,15 +1676,15 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
 			}
 		}
-		// Sort the post entries by time (newest to oldest)
-		sort.Slice(postEntriesForFollowFeed, func(ii, jj int) bool {
-			return postEntriesForFollowFeed[ii].TimestampNanos > postEntriesForFollowFeed[jj].TimestampNanos
-		})
-
 		if len(postEntriesForFollowFeed) >= numToFetch {
 			break
 		}
 	}
+
+	// Sort the post entries by time (newest to oldest)
+	sort.Slice(postEntriesForFollowFeed, func(ii, jj int) bool {
+		return postEntriesForFollowFeed[ii].TimestampNanos > postEntriesForFollowFeed[jj].TimestampNanos
+	})
 
 	var startIndex = 0
 	if startAfterPostHash != nil {
