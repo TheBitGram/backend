@@ -7,7 +7,7 @@ locals {
   fullnameOverride  = "gem-backend"
   replica_count     = 1
   docker_repository = "283278994941.dkr.ecr.us-east-1.amazonaws.com/backend"
-  docker_tag        = "v2.2.5"
+  docker_tag        = "test-infinite-feed"
   requests_memory   = "100Gi"
   requests_cpu      = "60"
   # put me on the big boy
@@ -85,7 +85,7 @@ provider "helm" {
 resource "aws_sqs_queue" "transactions-input" {
   name                      = "transactions-input"
   delay_seconds             = 15
-  max_message_size          = 2048
+  max_message_size          = 20480
   message_retention_seconds = 86400
 }
 
