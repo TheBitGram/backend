@@ -1621,7 +1621,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	var postEntriesForFollowFeed []*lib.PostEntry
     baseDaysToSubtract := 4
 	maxDaysToSubtractExponent := 5 // 4^5 = 1024 days
-    for daysToSubtractExponent := 1; daysToSubtractExponent < 6; daysToSubtractExponent++; {
+    for daysToSubtractExponent := 1; daysToSubtractExponent < 6; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(defaultDaysToSubtract, float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
 		postsFetched := len(postEntriesForFollowFeed)
 
