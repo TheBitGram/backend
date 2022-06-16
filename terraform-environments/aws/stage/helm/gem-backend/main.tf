@@ -85,7 +85,7 @@ provider "helm" {
 resource "aws_sqs_queue" "transactions-input" {
   name                      = "transactions-input"
   delay_seconds             = 15
-  max_message_size          = 2048
+  max_message_size          = 20480
   message_retention_seconds = 86400
 }
 
