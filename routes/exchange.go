@@ -1622,7 +1622,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	var minTimestampNanos uint64
 	var maxTimestampNanos uint64
 	baseDaysToSubtract := 2
-	maxDaysToSubtractExponent := 10 // 2^10 = 1024 days
+	maxDaysToSubtractExponent := 8 // 2^8 = 256 days
 	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
 		postsFetched := len(postEntriesForFollowFeed)
