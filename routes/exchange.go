@@ -1624,9 +1624,8 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	maxDaysToSubtractExponent := 8 // 2^8 = 256 days
 	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
-		postsFetched := len(postEntriesForFollowFeed)
 
-		if postsFetched > 0 {
+		if daysToSubtractExponent > 1 {
 			maxTimestampNanos = minTimestampNanos                                                                        // set to previous min
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
 		} else if startAfterPostHash != nil {
