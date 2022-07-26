@@ -1626,7 +1626,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
 		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
 		postsFetched := len(postEntriesForFollowFeed)
-
+		glog.Infof("max & min ts nanos %d %d", maxTimestampNanos, minTimestampNanos)
 		if postsFetched > 0 {
 			maxTimestampNanos = minTimestampNanos                                                                        // set to previous min
 			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
@@ -1651,6 +1651,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 			if err != nil {
 				return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
 			}
+			glog.Infof("dbPostAndCommentHashes size: %d", len(dbPostAndCommentHashes))
 
 			// Iterate through the entries found in the db and force the view to load them.
 			// This fills in any gaps in the view so that, after this, the view should contain
@@ -1673,6 +1674,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 			}
 
 			if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
+				glog.Infof("adding post to postEntriesForFollowFeed")
 				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
 			}
 		}
