@@ -1618,7 +1618,6 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
-	var postEntriesForFollowFeed []*lib.PostEntry
 	var minTimestampNanos uint64
 	var maxTimestampNanos uint64
 	baseDaysToSubtract := 2
@@ -1661,6 +1660,7 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		}
 
 		// Iterate over the view. Put all posts authored by people you follow into an array
+		var postEntriesForFollowFeed []*lib.PostEntry
 		for _, postEntry := range bav.PostHashToPostEntry {
 			// Ignore deleted or hidden posts and any comments.
 			if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
