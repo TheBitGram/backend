@@ -140,10 +140,10 @@ func (fes *APIServer) UpdateHotFeedApprovedPostsMap(hotFeedApprovedPosts map[lib
 	opKeys, opVals, err := fes.GlobalState.Seek(
 		startPrefix,
 		_GlobalStatePrefixForHotFeedApprovedPostOps, /*validForPrefix*/
-		0,     /*maxKeyLen -- ignored since reverse is false*/
-		0,     /*numToFetch -- 0 is ignored*/
-		false, /*reverse*/
-		true,  /*fetchValues*/
+		0,                                           /*maxKeyLen -- ignored since reverse is false*/
+		0,                                           /*numToFetch -- 0 is ignored*/
+		false,                                       /*reverse*/
+		true,                                        /*fetchValues*/
 	)
 	if err != nil {
 		glog.Infof("UpdateHotFeedApprovedPostsMap: Seek failed: %v", err)
@@ -208,10 +208,10 @@ func (fes *APIServer) UpdateHotFeedPKIDMultipliersMap(
 	opKeys, opVals, err := fes.GlobalState.Seek(
 		startPrefix,
 		_GlobalStatePrefixForHotFeedPKIDMultiplierOps, /*validForPrefix*/
-		0,     /*maxKeyLen -- ignored since reverse is false*/
-		0,     /*numToFetch -- 0 is ignored*/
-		false, /*reverse*/
-		true,  /*fetchValues*/
+		0,                                             /*maxKeyLen -- ignored since reverse is false*/
+		0,                                             /*numToFetch -- 0 is ignored*/
+		false,                                         /*reverse*/
+		true,                                          /*fetchValues*/
 	)
 	if err != nil {
 		glog.Infof("UpdateHotFeedPKIDMultipliersMap: Seek failed: %v", err)
@@ -619,9 +619,9 @@ func (fes *APIServer) PopulateHotnessInfoMap(
 					continue
 				}
 				// Exclude posts without media if HotFeedMediaRequired is set
-				if fes.Config.HotFeedMediaRequired && !postEntryScored.HasMedia() {
-					continue
-				}
+				//if fes.Config.HotFeedMediaRequired && !postEntryScored.HasMedia() {
+				//	continue
+				//}
 
 				var tags []string
 				var err error
@@ -1038,6 +1038,11 @@ func (fes *APIServer) HandleHotFeedPageRequest(
 		}
 
 		postEntry := utxoView.GetPostEntryForPostHash(hotFeedEntry.PostHash)
+
+		if fes.Config.HotFeedMediaRequired && !postEntry.HasMedia() {
+			continue
+		}
+
 		postEntryResponse, err := fes._postEntryToResponse(
 			postEntry, true, fes.Params, utxoView, readerPublicKeyBytes, 1)
 		if err != nil {
