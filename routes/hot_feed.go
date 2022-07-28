@@ -948,6 +948,8 @@ type HotFeedPageRequest struct {
 	Tag string
 	// If true, sort by new instead of by hotness. Only applies to queries where "Tag" is defined.
 	SortByNew bool
+	// If true, only return posts with media
+	MediaRequired bool
 }
 
 type HotFeedPageResponse struct {
@@ -1039,7 +1041,7 @@ func (fes *APIServer) HandleHotFeedPageRequest(
 
 		postEntry := utxoView.GetPostEntryForPostHash(hotFeedEntry.PostHash)
 
-		if fes.Config.HotFeedMediaRequired && !postEntry.HasMedia() {
+		if requestData.MediaRequired && !postEntry.HasMedia() {
 			continue
 		}
 
