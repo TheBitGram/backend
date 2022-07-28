@@ -619,9 +619,9 @@ func (fes *APIServer) PopulateHotnessInfoMap(
 					continue
 				}
 				// Exclude posts without media if HotFeedMediaRequired is set
-				//if fes.Config.HotFeedMediaRequired && !postEntryScored.HasMedia() {
-				//	continue
-				//}
+				if fes.Config.HotFeedMediaRequired && !postEntryScored.HasMedia() {
+					continue
+				}
 
 				var tags []string
 				var err error
@@ -949,7 +949,7 @@ type HotFeedPageRequest struct {
 	// If true, sort by new instead of by hotness. Only applies to queries where "Tag" is defined.
 	SortByNew bool
 	// If true, only return posts with media
-	MediaRequired bool
+	//MediaRequired bool
 }
 
 type HotFeedPageResponse struct {
@@ -1041,9 +1041,9 @@ func (fes *APIServer) HandleHotFeedPageRequest(
 
 		postEntry := utxoView.GetPostEntryForPostHash(hotFeedEntry.PostHash)
 
-		if requestData.MediaRequired && !postEntry.HasMedia() {
-			continue
-		}
+		//if requestData.MediaRequired && !postEntry.HasMedia() {
+		//	continue
+		//}
 
 		postEntryResponse, err := fes._postEntryToResponse(
 			postEntry, true, fes.Params, utxoView, readerPublicKeyBytes, 1)
