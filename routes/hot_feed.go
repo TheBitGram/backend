@@ -1038,7 +1038,6 @@ func (fes *APIServer) HandleHotFeedPageRequest(
 		}
 
 		postEntry := utxoView.GetPostEntryForPostHash(hotFeedEntry.PostHash)
-
 		postEntryResponse, err := fes._postEntryToResponse(
 			postEntry, true, fes.Params, utxoView, readerPublicKeyBytes, 1)
 		if err != nil {
