@@ -49,6 +49,8 @@ deployment:
           value: "true"
         - name: RUN_HOT_FEED_ROUTINE
           value: "true"
+        - name: HOT_FEED_MEDIA_REQUIRED
+          value: "true"
       perEnv: [ ]
     ports:
     - name: http1
