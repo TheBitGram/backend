@@ -39,8 +39,6 @@ deployment:
           value: "${sqs_uri}"
         - name: GLOBAL_STATE_API_URL
           value: "https://node.deso.org"
-        - name: EXPOSE_GLOBAL_STATE
-          value: "true"
         - name: RUN_HOT_FEED_ROUTINE
           value: "true"
         - name: HOT_FEED_MEDIA_REQUIRED
