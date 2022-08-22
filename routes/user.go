@@ -1215,6 +1215,8 @@ type GetSingleProfileRequest struct {
 	Username string `safeForLogging:"true"`
 	// When true, we don't log a 404 for missing profiles
 	NoErrorOnMissing bool `safeForLogging:"true"`
+	// When set, we filter extra data to return only keys that start with ExtraDataKeyPrefix.
+	ExtraDataKeyPrefix string `safeForLogging:"true"`
 }
 
 type GetSingleProfileResponse struct {
@@ -1267,6 +1269,17 @@ func (fes *APIServer) GetSingleProfile(ww http.ResponseWriter, req *http.Request
 	}
 
 	profileEntryResponse := fes._profileEntryToResponse(profileEntry, utxoView)
+
+	if requestData.ExtraDataKeyPrefix != "" {
+		filteredExtraData := make(map[string]string)
+		for key, value := range profileEntryResponse.ExtraData {
+			if !strings.HasPrefix(key, requestData.ExtraDataKeyPrefix) {
+				filteredExtraData[key] = value
+			}
+		}
+		profileEntryResponse.ExtraData = filteredExtraData
+	}
+
 	res := GetSingleProfileResponse{
 		Profile: profileEntryResponse,
 	}
