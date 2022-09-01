@@ -1,4 +1,5 @@
 ![DeSo Logo](assets/camelcase_logo.svg)
+trigger build
 
 # About DeSo
 
