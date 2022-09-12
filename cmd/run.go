@@ -36,9 +36,7 @@ func Run(cmd *cobra.Command, args []string) {
 		glog.Info("Shutdown complete")
 	}()
 
-	if shutdownListener != nil {
-		<-shutdownListener
-	}
+	<-shutdownListener
 }
 
 func init() {
@@ -90,7 +88,7 @@ func init() {
 			"is also required to restrict access.")
 
 	// Hot Feed
-	runCmd.PersistentFlags().Bool("run-hot-feed-routine", false,
+	runCmd.PersistentFlags().Bool("run-hot-feed-routine", true,
 		"If set, runs a go routine that accumulates 'hotness' scores for posts  in the "+
 			"last 24hrs.  This can be used to serve a 'hot' feed.")
 	runCmd.PersistentFlags().Bool("hot-feed-media-required", false,

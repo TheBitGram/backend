@@ -47,6 +47,17 @@ type GetMessagesStatelessRequest struct {
 	// SortAlgorithm determines how the messages should be returned. Currently
 	// it support time, deso, and followers based sorting.
 	SortAlgorithm string `safeForLogging:"true"`
+
+	// ---------------------------------------------------------
+	// DB Message Pagination Fields
+	// ---------------------------------------------------------
+
+	// MinTimestampNanos specifies the min timestamp to start retrieving messages from.
+	MinTimestampNanos uint64 `safeForLogging:"true"`
+
+	// MaxTimestampNanos specifies the max timestamp to start retrieving messages from.
+	// Defaults to math.MaxUint64 unless otherwise specified.
+	MaxTimestampNanos uint64 `safeForLogging:"true"`
 }
 
 // GetMessagesResponse ...
@@ -71,8 +82,8 @@ type GetMessagesResponse struct {
 }
 
 func (fes *APIServer) getMessagesStateless(publicKeyBytes []byte,
-	fetchAfterPublicKeyBytes []byte, numToFetch uint64, holdersOnly bool,
-	holdingsOnly bool, followersOnly bool, followingOnly bool, sortAlgorithm string) (
+	fetchAfterPublicKeyBytes []byte, numToFetch uint64, minTimestampNanos uint64, maxTimestampNanos uint64,
+	holdersOnly bool, holdingsOnly bool, followersOnly bool, followingOnly bool, sortAlgorithm string) (
 	_publicKeyToProfileEntry map[string]*ProfileEntryResponse,
 	_orderedContactsWithMessages []*MessageContactResponse,
 	_unreadMessagesByContact map[string]bool,
@@ -94,7 +105,7 @@ func (fes *APIServer) getMessagesStateless(publicKeyBytes []byte,
 	// for more insight on this.
 
 	// Get user's messaging groups and up to lib.MessagesToFetchPerInboxCall messages.
-	messageEntries, messagingGroups, err := utxoView.GetLimitedMessagesForUser(publicKeyBytes, uint64(lib.MessagesToFetchPerInboxCall))
+	messageEntries, messagingGroups, err := utxoView.GetLimitedMessagesForUser(publicKeyBytes, minTimestampNanos, maxTimestampNanos, uint64(lib.MessagesToFetchPerInboxCall))
 	if err != nil {
 		return nil, nil, nil, 0, nil, errors.Wrapf(
 			err, "getMessagesStateless: Problem fetching MessageEntries and MessagingGroupEntries from augmented UtxoView: ")
@@ -506,8 +517,8 @@ func (fes *APIServer) GetMessagesStateless(ww http.ResponseWriter, rr *http.Requ
 	// Get all contacts profile entries, messages, and group messaging keys.
 	publicKeyToProfileEntry, orderedContactsWithMessages,
 		unreadStateByContact, numOfUnreadThreads, messagingGroups, err := fes.getMessagesStateless(publicKeyBytes, fetchAfterPublicKeyBytes,
-		getMessagesRequest.NumToFetch, getMessagesRequest.HoldersOnly, getMessagesRequest.HoldingsOnly,
-		getMessagesRequest.FollowersOnly, getMessagesRequest.FollowingOnly, getMessagesRequest.SortAlgorithm)
+		getMessagesRequest.NumToFetch, getMessagesRequest.MinTimestampNanos, getMessagesRequest.MaxTimestampNanos, getMessagesRequest.HoldersOnly,
+		getMessagesRequest.HoldingsOnly, getMessagesRequest.FollowersOnly, getMessagesRequest.FollowingOnly, getMessagesRequest.SortAlgorithm)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("GetMessagesStateless: Problem fetching and decrypting messages: %v", err))
 		return
@@ -896,6 +907,9 @@ type RegisterMessagingGroupKeyRequest struct {
 	// the signature is only needed to register the default key.
 	MessagingKeySignatureHex string
 
+	// MessagingGroupMembers is the list of members we intend to add to this group.
+	MessagingGroupMembers []*MessagingGroupMemberResponse
+
 	// ExtraData is an arbitrary key value map
 	ExtraData map[string]string
 
@@ -979,9 +993,28 @@ func (fes *APIServer) RegisterMessagingGroupKey(ww http.ResponseWriter, req *htt
 		return
 	}
 
+	messagingGroupMembers := []*lib.MessagingGroupMember{}
+	for _, member := range requestData.MessagingGroupMembers {
+		memberPublicKeyBytes, _, err := lib.Base58CheckDecode(member.GroupMemberPublicKeyBase58Check)
+		if err != nil {
+			_AddBadRequestError(ww, fmt.Sprintf("RegisterMessagingGroupKey: Member public key %v is invalid: %v",
+				member.GroupMemberPublicKeyBase58Check, err))
+			return
+		}
+		memberPublicKey := lib.NewPublicKey(memberPublicKeyBytes)
+		groupKey := lib.NewMessagingGroupKey(memberPublicKey, []byte(member.GroupMemberKeyName))
+		encryptedKey, err := hex.DecodeString(member.EncryptedKey)
+
+		messagingGroupMembers = append(messagingGroupMembers, &lib.MessagingGroupMember{
+			GroupMemberPublicKey: memberPublicKey,
+			GroupMemberKeyName:   &groupKey.GroupKeyName,
+			EncryptedKey:         encryptedKey,
+		})
+	}
+
 	txn, totalInput, changeAmount, fees, err := fes.blockchain.CreateMessagingKeyTxn(
 		ownerPkBytes, messagingPkBytes, messagingKeyNameBytes, messagingKeySignature,
-		[]*lib.MessagingGroupMember{}, extraData,
+		messagingGroupMembers, extraData,
 		requestData.MinFeeRateNanosPerKB, fes.backendServer.GetMempool(), additionalOutputs)
 	if err != nil {
 		_AddBadRequestError(ww, fmt.Sprintf("RegisterMessagingGroupKey: Problem creating transaction: %v", err))
