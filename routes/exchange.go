@@ -1294,7 +1294,7 @@ func (fes *APIServer) _processTransactionWithKey(
 		// transaction will be mined at the earliest.
 		blockHeight+1,
 		true,
-		fes.mempool)
+		fes.mempool.GetAugmentedUniversalView)
 	if err != nil {
 		return fmt.Errorf("_processTransactionWithKey: Problem validating txn: %v", err)
 	}
@@ -1303,7 +1303,7 @@ func (fes *APIServer) _processTransactionWithKey(
 	// get here and Broadcast is true then we've already validated the transaction
 	// so all we need is to broadcast it.
 	if wantsBroadcast {
-		if _, err := fes.backendServer.BroadcastTransaction(txn); err != nil {
+		if _, err := fes.backendServer.BroadcastTransaction(txn, true); err != nil {
 			return fmt.Errorf("_processTransactionWithKey: Problem broadcasting txn: %v", err)
 		}
 	}

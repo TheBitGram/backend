@@ -128,6 +128,73 @@ func (fes *APIServer) SubmitTransaction(ww http.ResponseWriter, req *http.Reques
 	}
 }
 
+type SubmitTransactionsRequest struct {
+	SubmitTransactionRequests []*SubmitTransactionRequest
+}
+
+type SubmitTransactionsResponse struct {
+	SubmitTransactionResponses []*SubmitTransactionResponse
+}
+
+func (fes *APIServer) SubmitTransactions(ww http.ResponseWriter, req *http.Request) {
+	decoder := json.NewDecoder(io.LimitReader(req.Body, MaxRequestBodySizeBytes))
+	requestData := SubmitTransactionsRequest{}
+	if err := decoder.Decode(&requestData); err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("SubmitTransactionsRequest: Problem parsing request body: %v", err))
+		return
+	}
+
+	var txns []*lib.MsgDeSoTxn
+	for _, submitTransactionRequest := range requestData.SubmitTransactionRequests {
+		txnBytes, err := hex.DecodeString(submitTransactionRequest.TransactionHex)
+		if err != nil {
+			_AddBadRequestError(ww, fmt.Sprintf("SubmitTransactionsRequest: Problem deserializing transaction hex: %v", err))
+			return
+		}
+
+		txn := &lib.MsgDeSoTxn{}
+		err = txn.FromBytes(txnBytes)
+		if err != nil {
+			_AddBadRequestError(ww, fmt.Sprintf("SubmitTransactionsRequest: Problem deserializing transaction from bytes: %v", err))
+			return
+		}
+
+		txns = append(txns, txn)
+	}
+
+	if err := fes.backendServer.VerifyAndBroadcastTransactions(txns); err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("SubmitTransactions: Problem processing transactions: %v", err))
+		return
+	}
+
+	var submitTransactionResponses []*SubmitTransactionResponse
+	for _, txn := range txns {
+		submitTransactionResponse := &SubmitTransactionResponse{
+			Transaction:              txn,
+			TxnHashHex:               txn.Hash().String(),
+			TransactionIDBase58Check: lib.PkToString(txn.Hash()[:], fes.Params),
+		}
+
+		if txn.TxnMeta.GetTxnType() == lib.TxnTypeSubmitPost {
+			err := fes._afterProcessSubmitPostTransaction(txn, submitTransactionResponse)
+			if err != nil {
+				_AddBadRequestError(ww, fmt.Sprintf("_afterSubmitPostTransaction: %v", err))
+			}
+		}
+
+		submitTransactionResponses = append(submitTransactionResponses, submitTransactionResponse)
+	}
+
+	res := &SubmitTransactionsResponse{
+		SubmitTransactionResponses: submitTransactionResponses,
+	}
+
+	if err := json.NewEncoder(ww).Encode(res); err != nil {
+		_AddBadRequestError(ww, fmt.Sprintf("SubmitTransactionsResponse: Problem encoding response as JSON: %v", err))
+		return
+	}
+}
+
 // After we submit a new post transaction we need to do run a few callbacks
 // 1. Attach the PostEntry to the response so the client can render it
 // 2. Attempt to auto-whitelist the post for the global feed
