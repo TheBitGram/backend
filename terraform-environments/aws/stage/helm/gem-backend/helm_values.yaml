@@ -16,7 +16,7 @@ deployment:
     env:
       base:
         - name: TXINDEX
-          value: "false"
+          value: "true"
         - name: GLOG_V
           value: "0"
         - name: ADMIN_PUBLIC_KEYS
