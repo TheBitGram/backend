@@ -929,7 +929,7 @@ func (fes *APIServer) APITransactionInfo(ww http.ResponseWriter, rr *http.Reques
 					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
 				}
 
-				res.Transactions = append(res.Transactions, APITransactionToResponse(poolTx.Tx, poolTx.TxMeta, utxoView, fes.Params))
+				res.Transactions = append(res.Transactions, transaction)
 			}
 
 			// If we've filled up the page, exit.
