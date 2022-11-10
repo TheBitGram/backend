@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reflect"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/deso-protocol/core/lib"
@@ -435,6 +436,9 @@ type TransactionResponse struct {
 	// A string that uniquely identifies this transaction. This is a sha256 hash
 	// of the transaction’s data encoded using base58 check encoding.
 	TransactionIDBase58Check string
+	// A string that uniquely identifies this transaction. This is a sha256 hash
+	// of the transaction’s data encoded using hex.
+	TransactionHashHex string
 	// The raw hex of the transaction data. This can be fully-constructed from
 	// the human-readable portions of this object.
 	RawTransactionHex string `json:",omitempty"`
@@ -457,6 +461,8 @@ type TransactionResponse struct {
 
 	// The ExtraData added to this transaction
 	ExtraData map[string]string `json:",omitempty"`
+
+	NFTMetadata map[string]string `json:",omitempty"`
 }
 
 // TransactionInfoResponse contains information about the transaction
@@ -545,6 +551,7 @@ func APITransactionToResponse(
 
 	ret := &TransactionResponse{
 		TransactionIDBase58Check: lib.PkToString(txnn.Hash()[:], params),
+		TransactionHashHex:       txnn.Hash().String(),
 		RawTransactionHex:        hex.EncodeToString(txnBytes),
 		SignatureHex:             signatureHex,
 		TransactionType:          txnn.TxnMeta.GetTxnType().String(),
@@ -564,6 +571,7 @@ func APITransactionToResponse(
 		})
 	}
 	ret.ExtraData = DecodeExtraDataMap(params, utxoView, txnn.ExtraData)
+	ret.NFTMetadata = make(map[string]string)
 
 	if txnMeta != nil {
 		ret.BlockHashHex = txnMeta.BlockHashHex
@@ -888,6 +896,39 @@ func (fes *APIServer) APITransactionInfo(ww http.ResponseWriter, rr *http.Reques
 				res.Transactions = append(res.Transactions,
 					&TransactionResponse{TransactionIDBase58Check: lib.PkToString(poolTx.Tx.Hash()[:], fes.Params)})
 			} else {
+				transaction := APITransactionToResponse(poolTx.Tx, poolTx.TxMeta, utxoView, fes.Params)
+
+				switch poolTx.Tx.TxnMeta.GetTxnType() {
+				case lib.TxnTypeCreateNFT:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.CreateNFTMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["NumCopies"] = strconv.FormatUint(nftMetadata.NumCopies, 10)
+				case lib.TxnTypeUpdateNFT:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.UpdateNFTMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				case lib.TxnTypeAcceptNFTBid:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.AcceptNFTBidMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				case lib.TxnTypeNFTBid:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.NFTBidMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				case lib.TxnTypeNFTTransfer:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.NFTTransferMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				case lib.TxnTypeAcceptNFTTransfer:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.AcceptNFTTransferMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				case lib.TxnTypeBurnNFT:
+					nftMetadata := poolTx.Tx.TxnMeta.(*lib.BurnNFTMetadata)
+					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
+					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+				}
+
 				res.Transactions = append(res.Transactions, APITransactionToResponse(poolTx.Tx, poolTx.TxMeta, utxoView, fes.Params))
 			}
 
