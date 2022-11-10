@@ -556,7 +556,7 @@ func APITransactionToResponse(
 		SignatureHex:             signatureHex,
 		TransactionType:          txnn.TxnMeta.GetTxnType().String(),
 		TransactionMetadata:      &txnMetaResponse,
-		// Inputs, Outputs, ExtraData, and some txnMeta fields set below.
+		// Inputs, Outputs, ExtraData, NFTMetadata, and some txnMeta fields set below.
 	}
 	for _, input := range txnn.TxInputs {
 		ret.Inputs = append(ret.Inputs, &InputResponse{
@@ -571,7 +571,42 @@ func APITransactionToResponse(
 		})
 	}
 	ret.ExtraData = DecodeExtraDataMap(params, utxoView, txnn.ExtraData)
+
 	ret.NFTMetadata = make(map[string]string)
+	NFTPostHashString := "NFTPostHash"
+	NumCopiesString := "NumCopies"
+	SerialNumberString := "SerialNumber"
+
+	switch txnn.TxnMeta.GetTxnType() {
+	case lib.TxnTypeCreateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.CreateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[NumCopiesString] = strconv.FormatUint(nftMetadata.NumCopies, 10)
+	case lib.TxnTypeUpdateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.UpdateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeBurnNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.BurnNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	}
 
 	if txnMeta != nil {
 		ret.BlockHashHex = txnMeta.BlockHashHex
@@ -896,40 +931,7 @@ func (fes *APIServer) APITransactionInfo(ww http.ResponseWriter, rr *http.Reques
 				res.Transactions = append(res.Transactions,
 					&TransactionResponse{TransactionIDBase58Check: lib.PkToString(poolTx.Tx.Hash()[:], fes.Params)})
 			} else {
-				transaction := APITransactionToResponse(poolTx.Tx, poolTx.TxMeta, utxoView, fes.Params)
-
-				switch poolTx.Tx.TxnMeta.GetTxnType() {
-				case lib.TxnTypeCreateNFT:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.CreateNFTMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["NumCopies"] = strconv.FormatUint(nftMetadata.NumCopies, 10)
-				case lib.TxnTypeUpdateNFT:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.UpdateNFTMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				case lib.TxnTypeAcceptNFTBid:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.AcceptNFTBidMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				case lib.TxnTypeNFTBid:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.NFTBidMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				case lib.TxnTypeNFTTransfer:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.NFTTransferMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				case lib.TxnTypeAcceptNFTTransfer:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.AcceptNFTTransferMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				case lib.TxnTypeBurnNFT:
-					nftMetadata := poolTx.Tx.TxnMeta.(*lib.BurnNFTMetadata)
-					transaction.NFTMetadata["NFTPostHash"] = nftMetadata.NFTPostHash.String()
-					transaction.NFTMetadata["SerialNumber"] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
-				}
-
-				res.Transactions = append(res.Transactions, transaction)
+				res.Transactions = append(res.Transactions, APITransactionToResponse(poolTx.Tx, poolTx.TxMeta, utxoView, fes.Params))
 			}
 
 			// If we've filled up the page, exit.
