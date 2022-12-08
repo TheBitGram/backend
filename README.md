@@ -28,7 +28,7 @@ By default, new patch version is tagged each time a PR is merged to the main bra
 
 ### Deploying Service
 
-Go to Actions > Deploy [(link)](https://github.com/TheBitgram/preferences-server/actions/workflows/dispatch_app_terraform.yml) and click Run workflow. Enter the version tag and environment to deploy to.
+Go to Actions > Deploy [(link)](https://github.com/TheBitgram/backend/actions/workflows/dispatch_app_terraform.yml) and click Run workflow. Enter the version tag and environment to deploy to.
 
 # Common Errors and their solutions
 
