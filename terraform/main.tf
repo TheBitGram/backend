@@ -84,7 +84,7 @@ module "app" {
   # This is the helm repo add name
   official_chart_name = "standard-application"
   # This is what you want to name the chart when deploying
-  user_chart_name = var.fullnameOverride
+  user_chart_name = var.service_name
   # The helm chart version you want to use
   helm_version = "1.0.19"
   # The namespace you want to install the chart into - it will create the namespace if it doesnt exist
