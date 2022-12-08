@@ -21,6 +21,10 @@ variable "docker_tag" {
   type = string
 }
 
+variable "admin_public_keys" {
+  type = string
+}
+
 # Variables with default
 variable "service_name" {
   type    = string
