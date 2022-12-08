@@ -66,6 +66,7 @@ data "template_file" "helm_values" {
   # Parameters you want to pass into the helm_values.yaml.tpl file to be templated
   vars = {
     fullnameOverride  = var.service_name
+    service_hosts     = var.service_hosts
     namespace         = var.namespace
     replica_count     = var.replica_count
     docker_repository = local.docker_repository
