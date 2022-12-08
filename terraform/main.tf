@@ -35,7 +35,7 @@ data "terraform_remote_state" "eks" {
   config = {
     organization = "gem-engineering"
     workspaces = {
-      name = "kubernetes-ops-stage-20-eks"
+      name = "kubernetes-ops-${var.environment_name}-20-eks"
     }
   }
 }
