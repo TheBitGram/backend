@@ -21,10 +21,6 @@ variable "docker_tag" {
   type = string
 }
 
-variable "secrets" {
-  type = list(string)
-}
-
 # Variables with default
 variable "service_name" {
   type    = string
