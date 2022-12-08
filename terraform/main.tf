@@ -59,25 +59,6 @@ resource "aws_sqs_queue" "transactions-input" {
   message_retention_seconds = 86400
 }
 
-# Helm values file templating
-data "template_file" "helm_values" {
-  template = file("${path.module}/helm_values.yaml")
-
-  # Parameters you want to pass into the helm_values.yaml.tpl file to be templated
-  vars = {
-    fullnameOverride  = var.service_name
-    service_hosts     = var.service_hosts
-    namespace         = var.namespace
-    replica_count     = var.replica_count
-    docker_repository = local.docker_repository
-    docker_tag        = var.docker_tag
-    requests_memory   = var.requests_memory
-    requests_cpu      = var.requests_cpu
-    sqs_uri           = aws_sqs_queue.transactions-input.url
-    admin_public_keys = var.admin_public_keys
-  }
-}
-
 module "app" {
   source = "github.com/ManagedKube/kubernetes-ops//terraform-modules/aws/helm/helm_generic?ref=v1.0.9"
 
@@ -92,9 +73,16 @@ module "app" {
   # The namespace you want to install the chart into - it will create the namespace if it doesnt exist
   namespace = var.namespace
   # The helm chart values file
-  helm_values = data.template_file.helm_values.rendered
-
-  depends_on = [
-    data.terraform_remote_state.eks
-  ]
+  helm_values = templatefile("${path.module}/helm_values.yaml", {
+    fullnameOverride  = var.service_name
+    service_hosts     = var.service_hosts
+    namespace         = var.namespace
+    replica_count     = var.replica_count
+    docker_repository = local.docker_repository
+    docker_tag        = var.docker_tag
+    requests_memory   = var.requests_memory
+    requests_cpu      = var.requests_cpu
+    sqs_uri           = aws_sqs_queue.transactions-input.url
+    admin_public_keys = var.admin_public_keys
+  })
 }
