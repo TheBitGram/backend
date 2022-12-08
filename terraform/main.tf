@@ -73,7 +73,7 @@ data "template_file" "helm_values" {
     requests_memory   = var.requests_memory
     requests_cpu      = var.requests_cpu
     sqs_uri           = aws_sqs_queue.transactions-input.url
-    amdin_public_keys = var.admin_public_keys
+    admin_public_keys = var.admin_public_keys
   }
 }
 
