@@ -46,3 +46,8 @@ variable "requests_memory" {
   type    = string
   default = "4Gi"
 }
+
+variable "requests_cpu" {
+  type    = string
+  default = "60"
+}
