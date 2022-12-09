@@ -1,5 +1,5 @@
 locals {
-  docker_repository = "${var.docker_repo_host}/${var.service_name}"
+  docker_repository = "${var.docker_repo_host}/${var.docker_service_name}"
 }
 
 terraform {
