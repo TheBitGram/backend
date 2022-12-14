@@ -25,6 +25,8 @@ deployment:
           value: "true"
         - name: TESTNET
           value: "true"
+        - name: CONNECT_IPS
+          value: "35.192.117.201:18000"
         - name: GLOG_V
           value: "0"
         - name: ADMIN_PUBLIC_KEYS
