@@ -48,7 +48,7 @@ variable "replica_count" {
 
 variable "requests_memory" {
   type    = string
-  default = "4Gi"
+  default = "100Gi"
 }
 
 variable "requests_cpu" {
