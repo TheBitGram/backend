@@ -19,6 +19,10 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY_STAGE:
         required: true
+      AWS_ACCESS_KEY_ID_TESTNET:
+        required: true
+      AWS_SECRET_ACCESS_KEY_TESTNET:
+        required: true
       PASSWORD:
         required: true
 
@@ -29,9 +33,14 @@ jobs:
     strategy:
       matrix:
         environment_name:
+          - testnet
           - dev
           - stage
         include:
+          - environment_name: testnet
+            docker_repository_name: 093482933631.dkr.ecr.us-east-1.amazonaws.com
+            aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID_TESTNET
+            aws_secret_access_key_secrets_name: AWS_SECRET_ACCESS_KEY_TESTNET
           - environment_name: dev
             docker_repository_name: 067550988196.dkr.ecr.us-east-1.amazonaws.com
             aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID
