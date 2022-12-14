@@ -32,6 +32,9 @@ jobs:
           elif [ "${{ inputs.environment_name }}" = stage ]; then
             echo "aws_access_key_id_secrets_name=AWS_ACCESS_KEY_ID_STAGE" >> $GITHUB_OUTPUT
             echo "aws_secret_access_key_secrets_name=AWS_SECRET_ACCESS_KEY_STAGE" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.environment_name }}" = testnet ]; then
+            echo "aws_access_key_id_secrets_name=AWS_ACCESS_KEY_ID_TESTNET" >> $GITHUB_OUTPUT
+            echo "aws_secret_access_key_secrets_name=AWS_SECRET_ACCESS_KEY_TESTNET" >> $GITHUB_OUTPUT
           else
             echo "Unknown environment_name ${{ inputs.environment_name }}" >2
             exit 1
