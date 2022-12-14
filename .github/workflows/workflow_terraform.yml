@@ -32,6 +32,10 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY_STAGE:
         required: true
+      AWS_ACCESS_KEY_ID_TESTNET:
+        required: true
+      AWS_SECRET_ACCESS_KEY_TESTNET:
+        required: true
       SLACK_WEBHOOK:
         required: true
 jobs:
@@ -70,6 +74,14 @@ jobs:
           cp ${{ inputs.environment_name }}.tfvars env.auto.tfvars
           cat env.auto.tfvars
           echo 'docker_tag = "planning_only"' > docker_tag.auto.tfvars
+
+      - name: Terraform Setup Testnet Helm Values
+        working-directory: ./main/terraform
+        if: inputs.environment_name == 'testnet'
+        run: |
+          rm helm_values.yaml
+          mv testnet_helm_values.yaml helm_values.yaml
+          cat helm_values.yaml
 
       # Override docker_tag TF variable if specified for deployment
       - name: Terraform Setup Auto Variables [App Deploy]

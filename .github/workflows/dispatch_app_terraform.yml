@@ -8,6 +8,7 @@ on:
         type: choice
         required: true
         options:
+          - testnet
           - dev
           - stage
       docker_tag:
