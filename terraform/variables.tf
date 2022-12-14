@@ -1,10 +1,4 @@
 # Required variables
-variable "sqs_uri" {
-  description = "the url of the destination sqs"
-  type        = string
-  sensitive   = true
-}
-
 variable "environment_name" {
   type = string
 }
