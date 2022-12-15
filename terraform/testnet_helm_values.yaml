@@ -75,7 +75,6 @@ deployment:
     resources:
       requests:
         memory: ${requests_memory}
-        cpu: ${requests_cpu}
 
 ingress:
   enabled: true
