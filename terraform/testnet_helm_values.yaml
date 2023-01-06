@@ -28,21 +28,11 @@ deployment:
         - name: CONNECT_IPS
           value: "35.192.117.201:18000"
         - name: GLOG_V
-          value: "0"
+          value: "1"
         - name: ADMIN_PUBLIC_KEYS
           value: "${admin_public_keys}"
         - name: SUPER_ADMIN_PUBLIC_KEYS
           value: "${admin_public_keys}"
-        - name: MINER_PUBLIC_KEYS
-          value: "BC1YLg7Bk5sq9iNY17bAwoAYiChLYpmWEi6nY6q5gnA1UQV6xixHjfV"
-        - name: NUM_MINING_THREADS
-          value: "1"
-        - name: BLOCK_PRODUCER_SEED
-          value: "essence camp ghost remove document vault ladder swim pupil index apart ring"
-        - name: STARTER_DESO_SEED
-          value: "road congress client market couple bid risk escape artwork rookie artwork food"
-        - name: BLOCK_CYPHER_API_KEY
-          value: "092dae962ea44b02809a4c74408b42a1"
         - name: MIN_SATOSHIS_FOR_PROFILE
           value: "0"
         - name: SHOW_PROCESSING_SPINNERS
@@ -52,7 +42,7 @@ deployment:
         - name: DATA_DIR
           value: "/etc/backend-volume"
         - name: SQS_URI
-          value: "placeholder"
+          value: "${sqs_uri}"
         - name: GLOBAL_STATE_API_URL
           value: "https://test.deso.org"
         - name: EXPOSE_GLOBAL_STATE
