@@ -18,6 +18,6 @@ jobs:
     needs: tag
     uses: ./.github/workflows/workflow_build.yml
     with:
-      service_name: gem-backend
+      service_name: backend
       docker_meta_tags: type=raw,value=${{ needs.tag.outputs.next-tag }}
     secrets: inherit

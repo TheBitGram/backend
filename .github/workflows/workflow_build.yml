@@ -60,7 +60,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: main
+          path: backend
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: TheBitGram/core
+          path: core
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_CORE }}
 
       # Docs: https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
       - name: Docker meta
@@ -90,8 +97,8 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@v2
         with:
-          context: ./main
-          file: ./main/Dockerfile
+          context: .
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
