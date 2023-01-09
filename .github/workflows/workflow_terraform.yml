@@ -92,6 +92,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./main/terraform
+        if: inputs.docker_tag_to_deploy == ''
         run: terraform plan -no-color
 
       #######################################

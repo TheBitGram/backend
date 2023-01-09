@@ -28,7 +28,7 @@ deployment:
         - name: CONNECT_IPS
           value: "35.192.117.201:18000"
         - name: GLOG_V
-          value: "1"
+          value: "0"
         - name: ADMIN_PUBLIC_KEYS
           value: "${admin_public_keys}"
         - name: SUPER_ADMIN_PUBLIC_KEYS
@@ -48,7 +48,7 @@ deployment:
         - name: EXPOSE_GLOBAL_STATE
           value: "true"
         - name: RUN_HOT_FEED_ROUTINE
-          value: "true"
+          value: "false"
         - name: HOT_FEED_MEDIA_REQUIRED
           value: "true"
       perEnv: [ ]
