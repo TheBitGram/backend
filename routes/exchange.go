@@ -5,15 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/deso-protocol/core/lib"
 	"io"
-	"math"
 	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
 	"time"
-
-	"github.com/deso-protocol/core/lib"
 
 	"github.com/pkg/errors"
 
@@ -626,11 +624,11 @@ func APITransactionToResponse(
 // For example, if a transaction sends 10 DeSo from PubA to PubB with 5 DeSo
 // in “change” and 1 DeSo as a “miner fee,” then the transaction would look as
 // follows:
-// - Input: 16 DeSo (10 DeSo to send, 5 DeSo in change, and 1 DeSo as a fee)
-// - PubB: 10 DeSo (the amount being sent from A to B)
-// - PubA: 5 DeSo (change returned to A)
-// - Implicit 1 DeSo is paid as a fee to the miner. The miner fee is implicitly
-//   computed as (total input – total output) just like in Bitcoin.
+//   - Input: 16 DeSo (10 DeSo to send, 5 DeSo in change, and 1 DeSo as a fee)
+//   - PubB: 10 DeSo (the amount being sent from A to B)
+//   - PubA: 5 DeSo (change returned to A)
+//   - Implicit 1 DeSo is paid as a fee to the miner. The miner fee is implicitly
+//     computed as (total input – total output) just like in Bitcoin.
 //
 // TODO: This function is redundant with the APITransferDeSo function in frontend_utils
 func (fes *APIServer) APITransferDeSo(ww http.ResponseWriter, rr *http.Request) {
@@ -923,8 +921,8 @@ func (fes *APIServer) APITransactionInfo(ww http.ResponseWriter, rr *http.Reques
 			if !lastTxSeen {
 				if reflect.DeepEqual(poolTx.Hash, lastTxHash) {
 					lastTxSeen = true
-					continue
 				}
+				continue
 			}
 
 			if transactionInfoRequest.IDsOnly {
@@ -1464,7 +1462,7 @@ func IsRestrictedPubKey(userGraylistState []byte, userBlacklistState []byte, mod
 	}
 }
 
-//Get the map of public keys this user has blocked.  The _blockedPubKeyMap operates as a hashset to speed up look up time
+// Get the map of public keys this user has blocked.  The _blockedPubKeyMap operates as a hashset to speed up look up time
 // while value are empty structs to keep memory usage down.
 func (fes *APIServer) GetBlockedPubKeysForUser(userPubKey []byte) (_blockedPubKeyMap map[string]struct{}, _err error) {
 	/* Get public keys of users the reader has blocked */
@@ -1629,10 +1627,14 @@ func (fes *APIServer) GetProfilesByCoinValue(
 	return profilesByPublicKey, postsByPublicKey, postEntryReaderStates, nil
 }
 
-func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, startAfterPostHash *lib.BlockHash, publicKey []byte, numToFetch int, skipHidden bool, mediaRequired bool) (
+func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, startAfterPostHash *lib.BlockHash, publicKey []byte, numToFetch int, skipHidden bool, mediaRequired bool, onlyNFTs bool, onlyPosts bool) (
 	_postEntries []*lib.PostEntry, _err error) {
 	// Get the people who follow publicKey
 	// Note: GetFollowEntriesForPublicKey also loads them into the view
+	if onlyNFTs && onlyPosts {
+		return nil, fmt.Errorf("GetPostsForFollowFeedForPublicKey: OnlyNFTS and OnlyPosts can not be enabled both")
+	}
+
 	followEntries, err := bav.GetFollowEntriesForPublicKey(publicKey, false /* getEntriesFollowingPublicKey */)
 
 	if err != nil {
@@ -1661,66 +1663,47 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
+	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -2).UnixNano()) // two days ago
+	// For each of these pub keys, get their posts, and load them into the view too
+	for _, followedPubKey := range filteredPubKeysMap {
+
+		_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
+			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, 0, /*maxTimestampNanos*/
+		)
+		if err != nil {
+			return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
+		}
+
+		// Iterate through the entries found in the db and force the view to load them.
+		// This fills in any gaps in the view so that, after this, the view should contain
+		// the union of what it had before plus what was in the db.
+		for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
+			bav.GetPostEntryForPostHash(dbPostOrCommentHash)
+		}
+	}
+
+	// Iterate over the view. Put all posts authored by people you follow into an array
 	var postEntriesForFollowFeed []*lib.PostEntry
-	var minTimestampNanos uint64
-	var maxTimestampNanos uint64
-	baseDaysToSubtract := 2
-	maxDaysToSubtractExponent := 8 // 2^8 = 256 days
-	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
-		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
-
-		if daysToSubtractExponent > 1 {
-			maxTimestampNanos = minTimestampNanos                                                                        // set to previous min
-			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
-		} else if startAfterPostHash != nil {
-			maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
-			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
-		} else {
-			minTimestampNanos = uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
-			maxTimestampNanos = uint64(0)
+	for _, postEntry := range bav.PostHashToPostEntry {
+		// Ignore deleted or hidden posts and any comments.
+		if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
+			continue
 		}
 
-		if daysToSubtractExponent >= maxDaysToSubtractExponent {
-			minTimestampNanos = 0 // use entire history
+		// mediaRequired set to determine if we only want posts that include media and ignore posts without
+		if mediaRequired && !postEntry.HasMedia() {
+			continue
 		}
 
-		// For each of these pub keys, get their posts, and load them into the view too
-		for _, followedPubKey := range filteredPubKeysMap {
-
-			_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
-				bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, maxTimestampNanos,
-			)
-			if err != nil {
-				return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
-			}
-
-			// Iterate through the entries found in the db and force the view to load them.
-			// This fills in any gaps in the view so that, after this, the view should contain
-			// the union of what it had before plus what was in the db.
-			for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
-				bav.GetPostEntryForPostHash(dbPostOrCommentHash)
-			}
+		if onlyNFTs && !postEntry.IsNFT {
+			continue
+		}
+		if onlyPosts && postEntry.IsNFT {
+			continue
 		}
 
-		// Iterate over the view. Put all posts authored by people you follow into an array
-		postEntriesForFollowFeed = nil
-		for _, postEntry := range bav.PostHashToPostEntry {
-			// Ignore deleted or hidden posts and any comments.
-			if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
-				continue
-			}
-
-			// mediaRequired set to determine if we only want posts that include media and ignore posts without
-			if mediaRequired && !postEntry.HasMedia() {
-				continue
-			}
-
-			if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
-				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
-			}
-		}
-		if len(postEntriesForFollowFeed) >= numToFetch {
-			break
+		if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
+			postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
 		}
 	}
 
@@ -1732,12 +1715,17 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	var startIndex = 0
 	if startAfterPostHash != nil {
 		var indexOfStartAfterPostHash int
+		startPostHashFound := false
 		// Find the index of the starting post so that we can paginate the result
 		for index, postEntry := range postEntriesForFollowFeed {
 			if *postEntry.PostHash == *startAfterPostHash {
 				indexOfStartAfterPostHash = index
+				startPostHashFound = true
 				break
 			}
+		}
+		if !startPostHashFound {
+			return nil, fmt.Errorf("GetPostsForFollowFeedForPublicKey: start post hash not found in results")
 		}
 		// the first element of our new slice should be the element AFTER startAfterPostHash
 		startIndex = indexOfStartAfterPostHash + 1
@@ -1752,12 +1740,19 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 // This is then joined with mempool and all posts are returned.  Because the mempool may contain
 // post changes, the number of posts returned in the map is not guaranteed to be numToFetch.
 func (fes *APIServer) GetPostsByTime(bav *lib.UtxoView, startPostHash *lib.BlockHash, readerPK []byte,
-	numToFetch int, skipHidden bool, skipVanillaRepost bool, mediaRequired bool) (
+	numToFetch int, skipHidden bool, skipVanillaRepost bool, mediaRequired bool, onlyNFTs bool, onlyPosts bool) (
 	_corePosts []*lib.PostEntry, _commentsByPostHash map[lib.BlockHash][]*lib.PostEntry, _err error) {
+
+	if onlyNFTs && onlyPosts {
+		return nil, nil, fmt.Errorf("GetPostsByTime: OnlyNFTS and OnlyPosts can not be enabled both")
+	}
 
 	var startPost *lib.PostEntry
 	if startPostHash != nil {
 		startPost = bav.GetPostEntryForPostHash(startPostHash)
+		if startPost == nil || startPost.IsDeleted() {
+			return nil, nil, fmt.Errorf("GetPostsByTime: start post entry not found")
+		}
 	}
 
 	var startTstampNanos uint64
@@ -1805,6 +1800,13 @@ func (fes *APIServer) GetPostsByTime(bav *lib.UtxoView, startPostHash *lib.Block
 				continue
 			}
 
+			if onlyNFTs && !postEntry.IsNFT {
+				continue
+			}
+			if onlyPosts && postEntry.IsNFT {
+				continue
+			}
+
 			// We make sure that the post isn't a comment.
 			if len(postEntry.ParentStakeID) == 0 {
 				postEntryPubKeyMap[lib.MakePkMapKey(postEntry.PosterPublicKey)] = postEntry.PosterPublicKey
@@ -1828,6 +1830,13 @@ func (fes *APIServer) GetPostsByTime(bav *lib.UtxoView, startPostHash *lib.Block
 
 			// If media is required and this post does not have media, skip it.
 			if mediaRequired && !postEntry.HasMedia() {
+				continue
+			}
+
+			if onlyNFTs && !postEntry.IsNFT {
+				continue
+			}
+			if onlyPosts && postEntry.IsNFT {
 				continue
 			}
 

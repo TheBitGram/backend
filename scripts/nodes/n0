@@ -18,7 +18,7 @@ rm /tmp/main.*.log
   --block-cypher-api-key=092dae962ea44b02809a4c74408b42a1 \
   --min-satoshis-for-profile=0 \
   --connect-ips=deso-seed-2.io:17000 \
-  --run-hot-feed-routine=true
+  --run-hot-feed-routine=true \
   --sqs-uri='https://sqs.us-east-1.amazonaws.com/067550988196/transactions-worker-input-queue'
 )
 
