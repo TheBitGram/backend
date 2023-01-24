@@ -535,6 +535,9 @@ func (fes *APIServer) PopulateHotnessInfoMap(
 	for _, hotnessInfoBlock := range hotnessInfoBlocks {
 		block := hotnessInfoBlock.Block
 		blockAgee := hotnessInfoBlock.BlockAge
+		if block == nil {
+			continue
+		}
 		for _, txn := range block.Txns {
 			// We only care about posts created in the specified look-back period. There should always be a
 			// transaction that creates a given post before someone interacts with it. By only
@@ -1080,7 +1083,7 @@ func (fes *APIServer) HandleHotFeedPageRequest(
 				postHash := &lib.BlockHash{}
 				copy(postHash[:], dbKeyBytes[1+len(maxBigEndianUint64Bytes):][:])
 				postEntry := utxoView.GetPostEntryForPostHash(postHash)
-				if postEntry != nil {
+				if postEntry != nil && !postEntry.IsHidden {
 					postEntry.IsPinned = true
 					profileEntry := utxoView.GetProfileEntryForPublicKey(postEntry.PosterPublicKey)
 					postEntryResponse, err := fes._postEntryToResponse(
