@@ -1,0 +1,90 @@
+replicaCount: ${replica_count}
+
+fullnameOverride: ${fullnameOverride}
+namespace: ${namespace}
+
+
+deployment:
+  containers:
+  - name: ${fullnameOverride}
+    image:
+      repository: ${docker_repository}
+      tag: ${docker_tag}
+      pullPolicy: Always
+    args:
+    - run
+    env:
+      base:
+        - name: TXINDEX
+          value: "true"
+        - name: GLOG_V
+          value: "0"
+        - name: ADMIN_PUBLIC_KEYS
+          value: "${admin_public_keys}"
+        - name: SUPER_ADMIN_PUBLIC_KEYS
+          value: "${admin_public_keys}"
+        - name: RATE_LIMIT_FEERATE
+          value: "0"
+        - name: MIN_FEERATE
+          value: "1000"
+        - name: STARTER_BITCLOUT_NANOS
+          value: "1000000"
+        - name: MIN_SATOSHIS_FOR_PROFILE
+          value: "50000"
+        - name: DATA_DIR
+          value: "/etc/backend-volume"
+        - name: SQS_URI
+          value: "${sqs_uri}"
+        - name: GLOBAL_STATE_API_URL
+          value: "https://node.deso.org"
+        - name: EXPOSE_GLOBAL_STATE
+          value: "true"
+        - name: RUN_HOT_FEED_ROUTINE
+          value: "true"
+        - name: HOT_FEED_MEDIA_REQUIRED
+          value: "true"
+      perEnv: [ ]
+    ports:
+    - name: http1
+      protocol: TCP
+      containerPort: 17000
+      servicePort: 17000
+    - name: http2
+      protocol: TCP
+      containerPort: 17001
+      servicePort: 17001
+
+    resources:
+      requests:
+        memory: ${requests_memory}
+        cpu: ${requests_cpu}
+
+
+    volumeMounts:
+    # name must match the volume name below
+    - name: pearl-backend-vol-v2
+      mountPath: /etc/backend-volume
+
+
+volumes:
+- name: pearl-backend-vol-v2
+  persistentVolumeClaim:
+    claimName: pearl-backend-vol-v2
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx-external
+    # kubernetes.io/tls-acme: "true"
+  paths:
+    - path: /api
+      servicePort: 17001
+  hosts:
+  %{ if length(service_hosts) > 0 }
+    %{ for host in service_hosts }
+    - ${host}
+    %{ endfor }
+  %{ else }
+    [ ]
+  %{ endif }
+  tls: [ ]
