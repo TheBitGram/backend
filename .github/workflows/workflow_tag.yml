@@ -23,7 +23,7 @@ jobs:
         id: get-next-tag
         run: |
           current_tag=$(git tag -l | grep '^v[[:digit:]]*\.[[:digit:]]*\.[[:digit:]]*\.[[:digit:]]*$' | cut -c2- | sort -V | tail -n1)
-          current_deso_version=$(echo $current_tag | cut -d. -f1 -f2)
+          current_deso_version=$(echo $current_tag | cut -d. -f1 -f2 -f3)
           patch_version=$(( $(echo $current_tag | cut -d. -f4) + 1))
           repo_deso_version=$(cat version.txt)
           if [ $current_deso_version = $repo_deso_version ]
