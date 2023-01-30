@@ -1,0 +1,4 @@
+environment_name  = "dev"
+docker_repo_host  = "067550988196.dkr.ecr.us-east-1.amazonaws.com"
+service_hosts     = ["api.dev.yourgem.app", "api.dev.pearl.app"]
+admin_public_keys = "BC1YLfrvJwwAjDcL3Tq2spWbvXCJFadiDdJMyvCaeHgG7snSsYNRKXk BC1YLhKuj76oaT1wwGhfb9GX7rCyc9cxrx54v84fAn9EDuc9zDawgGf BC1YLh6WDX4uCw3pcT7pjEQG7UcLj1KS1SpG3hnLkWg11EiBGjAM6oP BC1YLfyqxLpXsiGt7HvgjaKBjCZjAev82HeM626Nw7zfuYowrY72fGP BC1YLhSkJo5dhiFK38eFdViXm1tsAVi1ZFdNroG1RoB8NJG4JnDLzNK BC1YLgC4t51g6NTmd9gMzrdyfVHE94r7HiPWCq3nk1H7E7csDToXEVK BC1YLhBXUkeaQ8YT24ZWNi8q9iArmuVuYjS1BXjuzZMmfQ2VwaD4GzS BC1YLhSkJo5dhiFK38eFdViXm1tsAVi1ZFdNroG1RoB8NJG4JnDLzNK BC1YLitDQpQycqHf8sni9vJgSeYqfH6G2w7UPUzZNUgX3bofqnh5y8x"
