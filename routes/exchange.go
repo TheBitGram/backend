@@ -5,13 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/deso-protocol/core/lib"
 	"io"
 	"net/http"
 	"reflect"
 	"sort"
+	"strconv"
 	"time"
-
-	"github.com/deso-protocol/core/lib"
 
 	"github.com/pkg/errors"
 
@@ -434,6 +434,9 @@ type TransactionResponse struct {
 	// A string that uniquely identifies this transaction. This is a sha256 hash
 	// of the transaction’s data encoded using base58 check encoding.
 	TransactionIDBase58Check string
+	// A string that uniquely identifies this transaction. This is a sha256 hash
+	// of the transaction’s data encoded using hex.
+	TransactionHashHex string
 	// The raw hex of the transaction data. This can be fully-constructed from
 	// the human-readable portions of this object.
 	RawTransactionHex string `json:",omitempty"`
@@ -456,6 +459,8 @@ type TransactionResponse struct {
 
 	// The ExtraData added to this transaction
 	ExtraData map[string]string `json:",omitempty"`
+
+	NFTMetadata map[string]string `json:",omitempty"`
 }
 
 // TransactionInfoResponse contains information about the transaction
@@ -544,11 +549,12 @@ func APITransactionToResponse(
 
 	ret := &TransactionResponse{
 		TransactionIDBase58Check: lib.PkToString(txnn.Hash()[:], params),
+		TransactionHashHex:       txnn.Hash().String(),
 		RawTransactionHex:        hex.EncodeToString(txnBytes),
 		SignatureHex:             signatureHex,
 		TransactionType:          txnn.TxnMeta.GetTxnType().String(),
 		TransactionMetadata:      &txnMetaResponse,
-		// Inputs, Outputs, ExtraData, and some txnMeta fields set below.
+		// Inputs, Outputs, ExtraData, NFTMetadata, and some txnMeta fields set below.
 	}
 	for _, input := range txnn.TxInputs {
 		ret.Inputs = append(ret.Inputs, &InputResponse{
@@ -563,6 +569,42 @@ func APITransactionToResponse(
 		})
 	}
 	ret.ExtraData = DecodeExtraDataMap(params, utxoView, txnn.ExtraData)
+
+	ret.NFTMetadata = make(map[string]string)
+	NFTPostHashString := "NFTPostHash"
+	NumCopiesString := "NumCopies"
+	SerialNumberString := "SerialNumber"
+
+	switch txnn.TxnMeta.GetTxnType() {
+	case lib.TxnTypeCreateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.CreateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[NumCopiesString] = strconv.FormatUint(nftMetadata.NumCopies, 10)
+	case lib.TxnTypeUpdateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.UpdateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeBurnNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.BurnNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	}
 
 	if txnMeta != nil {
 		ret.BlockHashHex = txnMeta.BlockHashHex
@@ -1293,7 +1335,7 @@ func (fes *APIServer) _processTransactionWithKey(
 		// transaction will be mined at the earliest.
 		blockHeight+1,
 		true,
-		fes.mempool)
+		fes.mempool.GetAugmentedUniversalView)
 	if err != nil {
 		return fmt.Errorf("_processTransactionWithKey: Problem validating txn: %v", err)
 	}
@@ -1302,7 +1344,7 @@ func (fes *APIServer) _processTransactionWithKey(
 	// get here and Broadcast is true then we've already validated the transaction
 	// so all we need is to broadcast it.
 	if wantsBroadcast {
-		if _, err := fes.backendServer.BroadcastTransaction(txn); err != nil {
+		if _, err := fes.backendServer.BroadcastTransaction(txn, true); err != nil {
 			return fmt.Errorf("_processTransactionWithKey: Problem broadcasting txn: %v", err)
 		}
 	}

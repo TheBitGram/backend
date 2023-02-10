@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pearl-backend-vol-v2
+  namespace: app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1600Gi
+  storageClassName: pio2
+  volumeMode: Filesystem
