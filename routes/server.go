@@ -166,10 +166,11 @@ const (
 	RoutePathUpdateTutorialStatus = "/api/v0/update-tutorial-status"
 
 	// eth.go
-	RoutePathSubmitETHTx       = "/api/v0/submit-eth-tx"
-	RoutePathMetamaskSignIn    = "/api/v0/send-starter-deso-for-metamask-account"
-	RoutePathQueryETHRPC       = "/api/v0/query-eth-rpc"
-	RoutePathAdminProcessETHTx = "/api/v0/admin/process-eth-tx"
+	RoutePathSubmitETHTx                     = "/api/v0/submit-eth-tx"
+	RoutePathMetamaskSignIn                  = "/api/v0/send-starter-deso-for-metamask-account"
+	RoutePathQueryETHRPC                     = "/api/v0/query-eth-rpc"
+	RoutePathGetETHTransactionsForETHAddress = "/api/v0/get-eth-transactions-for-eth-address"
+	RoutePathAdminProcessETHTx               = "/api/v0/admin/process-eth-tx"
 
 	// wyre.go
 	RoutePathGetWyreWalletOrderQuotation     = "/api/v0/get-wyre-wallet-order-quotation"
@@ -1344,6 +1345,13 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 			PublicAccess,
 		},
 		{
+			"GetETHTransactionsForETHAddress",
+			[]string{"GET"},
+			RoutePathGetETHTransactionsForETHAddress + "/{ethAddress:0x[a-fA-F0-9]+$}",
+			fes.GetETHTransactionsForETHAddress,
+			PublicAccess,
+		},
+		{
 			"SendStarterDesoForMetamaskAccount",
 			[]string{"POST", "OPTIONS"},
 			RoutePathMetamaskSignIn,
@@ -1871,7 +1879,7 @@ func (fes *APIServer) NewRouter() *muxtrace.Router {
 		{
 			"EnableVideoDownload",
 			[]string{"POST", "OPTIONS"},
-			RoutePathEnableVideoDownload,
+			RoutePathEnableVideoDownload + "/{videoId:[0-9a-z]{25,35}}",
 			fes.EnableVideoDownload,
 			PublicAccess,
 		},
@@ -2629,6 +2637,9 @@ func (fes *APIServer) StartGlobalStateMonitoring() {
 }
 
 func (fes *APIServer) SetGlobalStateCache() {
+	if fes.backendServer == nil {
+		return
+	}
 	utxoView, err := fes.backendServer.GetMempool().GetAugmentedUniversalView()
 	if err != nil {
 		glog.Errorf("SetGlobalStateCache: problem with GetAugmentedUniversalView: %v", err)
