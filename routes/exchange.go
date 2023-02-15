@@ -1728,10 +1728,6 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 			if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
 				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
 			}
-
-			if len(postEntriesForFollowFeed) >= numToFetch {
-				break
-			}
 		}
 	}
 
@@ -1743,18 +1739,14 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	var startIndex = 0
 	if startAfterPostHash != nil {
 		var indexOfStartAfterPostHash int
-		startPostHashFound := false
 		// Find the index of the starting post so that we can paginate the result
 		for index, postEntry := range postEntriesForFollowFeed {
 			if *postEntry.PostHash == *startAfterPostHash {
 				indexOfStartAfterPostHash = index
-				startPostHashFound = true
 				break
 			}
 		}
-		if !startPostHashFound {
-			return nil, fmt.Errorf("GetPostsForFollowFeedForPublicKey: start post hash not found in results")
-		}
+
 		// the first element of our new slice should be the element AFTER startAfterPostHash
 		startIndex = indexOfStartAfterPostHash + 1
 	}
