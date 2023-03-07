@@ -33,18 +33,18 @@ jobs:
     strategy:
       matrix:
         environment_name:
-          - testnet
-          - dev
+#          - testnet
+#          - dev
           - stage
         include:
-          - environment_name: testnet
-            docker_repository_name: 093482933631.dkr.ecr.us-east-1.amazonaws.com
-            aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID_TESTNET
-            aws_secret_access_key_secrets_name: AWS_SECRET_ACCESS_KEY_TESTNET
-          - environment_name: dev
-            docker_repository_name: 067550988196.dkr.ecr.us-east-1.amazonaws.com
-            aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID
-            aws_secret_access_key_secrets_name: AWS_SECRET_ACCESS_KEY
+#          - environment_name: testnet
+#            docker_repository_name: 093482933631.dkr.ecr.us-east-1.amazonaws.com
+#            aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID_TESTNET
+#            aws_secret_access_key_secrets_name: AWS_SECRET_ACCESS_KEY_TESTNET
+#          - environment_name: dev
+#            docker_repository_name: 067550988196.dkr.ecr.us-east-1.amazonaws.com
+#            aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID
+#            aws_secret_access_key_secrets_name: AWS_SECRET_ACCESS_KEY
           - environment_name: stage
             docker_repository_name: 283278994941.dkr.ecr.us-east-1.amazonaws.com
             aws_access_key_id_secrets_name: AWS_ACCESS_KEY_ID_STAGE
