@@ -5,13 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/deso-protocol/core/lib"
 	"io"
+	"math"
 	"net/http"
 	"reflect"
 	"sort"
+	"strconv"
 	"time"
-
-	"github.com/deso-protocol/core/lib"
 
 	"github.com/pkg/errors"
 
@@ -434,6 +435,9 @@ type TransactionResponse struct {
 	// A string that uniquely identifies this transaction. This is a sha256 hash
 	// of the transaction’s data encoded using base58 check encoding.
 	TransactionIDBase58Check string
+	// A string that uniquely identifies this transaction. This is a sha256 hash
+	// of the transaction’s data encoded using hex.
+	TransactionHashHex string
 	// The raw hex of the transaction data. This can be fully-constructed from
 	// the human-readable portions of this object.
 	RawTransactionHex string `json:",omitempty"`
@@ -456,6 +460,8 @@ type TransactionResponse struct {
 
 	// The ExtraData added to this transaction
 	ExtraData map[string]string `json:",omitempty"`
+
+	NFTMetadata map[string]string `json:",omitempty"`
 }
 
 // TransactionInfoResponse contains information about the transaction
@@ -544,11 +550,12 @@ func APITransactionToResponse(
 
 	ret := &TransactionResponse{
 		TransactionIDBase58Check: lib.PkToString(txnn.Hash()[:], params),
+		TransactionHashHex:       txnn.Hash().String(),
 		RawTransactionHex:        hex.EncodeToString(txnBytes),
 		SignatureHex:             signatureHex,
 		TransactionType:          txnn.TxnMeta.GetTxnType().String(),
 		TransactionMetadata:      &txnMetaResponse,
-		// Inputs, Outputs, ExtraData, and some txnMeta fields set below.
+		// Inputs, Outputs, ExtraData, NFTMetadata, and some txnMeta fields set below.
 	}
 	for _, input := range txnn.TxInputs {
 		ret.Inputs = append(ret.Inputs, &InputResponse{
@@ -563,6 +570,42 @@ func APITransactionToResponse(
 		})
 	}
 	ret.ExtraData = DecodeExtraDataMap(params, utxoView, txnn.ExtraData)
+
+	ret.NFTMetadata = make(map[string]string)
+	NFTPostHashString := "NFTPostHash"
+	NumCopiesString := "NumCopies"
+	SerialNumberString := "SerialNumber"
+
+	switch txnn.TxnMeta.GetTxnType() {
+	case lib.TxnTypeCreateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.CreateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[NumCopiesString] = strconv.FormatUint(nftMetadata.NumCopies, 10)
+	case lib.TxnTypeUpdateNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.UpdateNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTBid:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTBidMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.NFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeAcceptNFTTransfer:
+		nftMetadata := txnn.TxnMeta.(*lib.AcceptNFTTransferMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	case lib.TxnTypeBurnNFT:
+		nftMetadata := txnn.TxnMeta.(*lib.BurnNFTMetadata)
+		ret.NFTMetadata[NFTPostHashString] = nftMetadata.NFTPostHash.String()
+		ret.NFTMetadata[SerialNumberString] = strconv.FormatUint(nftMetadata.SerialNumber, 10)
+	}
 
 	if txnMeta != nil {
 		ret.BlockHashHex = txnMeta.BlockHashHex
@@ -1293,7 +1336,7 @@ func (fes *APIServer) _processTransactionWithKey(
 		// transaction will be mined at the earliest.
 		blockHeight+1,
 		true,
-		fes.mempool)
+		fes.mempool.GetAugmentedUniversalView)
 	if err != nil {
 		return fmt.Errorf("_processTransactionWithKey: Problem validating txn: %v", err)
 	}
@@ -1302,7 +1345,7 @@ func (fes *APIServer) _processTransactionWithKey(
 	// get here and Broadcast is true then we've already validated the transaction
 	// so all we need is to broadcast it.
 	if wantsBroadcast {
-		if _, err := fes.backendServer.BroadcastTransaction(txn); err != nil {
+		if _, err := fes.backendServer.BroadcastTransaction(txn, true); err != nil {
 			return fmt.Errorf("_processTransactionWithKey: Problem broadcasting txn: %v", err)
 		}
 	}
@@ -1621,47 +1664,70 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 		return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem filtering out restricted public keys: ")
 	}
 
-	minTimestampNanos := uint64(time.Now().UTC().AddDate(0, 0, -2).UnixNano()) // two days ago
-	// For each of these pub keys, get their posts, and load them into the view too
-	for _, followedPubKey := range filteredPubKeysMap {
-
-		_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
-			bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, 0, /*maxTimestampNanos*/
-		)
-		if err != nil {
-			return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
-		}
-
-		// Iterate through the entries found in the db and force the view to load them.
-		// This fills in any gaps in the view so that, after this, the view should contain
-		// the union of what it had before plus what was in the db.
-		for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
-			bav.GetPostEntryForPostHash(dbPostOrCommentHash)
-		}
-	}
-
-	// Iterate over the view. Put all posts authored by people you follow into an array
 	var postEntriesForFollowFeed []*lib.PostEntry
-	for _, postEntry := range bav.PostHashToPostEntry {
-		// Ignore deleted or hidden posts and any comments.
-		if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
-			continue
+	var minTimestampNanos uint64
+	var maxTimestampNanos uint64
+	baseDaysToSubtract := 2
+	maxDaysToSubtractExponent := 8 // 2^8 = 256 days
+	for daysToSubtractExponent := 1; daysToSubtractExponent < maxDaysToSubtractExponent+1; daysToSubtractExponent++ {
+		daysToSubtract := int(math.Pow(float64(baseDaysToSubtract), float64(daysToSubtractExponent))) // baseDaysToSubtract ^ daysToSubtractExponent
+
+		if daysToSubtractExponent > 1 {
+			maxTimestampNanos = minTimestampNanos                                                                        // set to previous min
+			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+		} else if startAfterPostHash != nil {
+			maxTimestampNanos = bav.GetPostEntryForPostHash(startAfterPostHash).TimestampNanos
+			minTimestampNanos = uint64(time.Unix(0, int64(maxTimestampNanos)).AddDate(0, 0, -daysToSubtract).UnixNano()) // casting timestamp uint64 to int64 won't crash until 2262
+		} else {
+			minTimestampNanos = uint64(time.Now().UTC().AddDate(0, 0, -daysToSubtract).UnixNano()) // baseDaysToSubtract ^ daysToSubtractExponent days ago
+			maxTimestampNanos = uint64(0)
 		}
 
-		// mediaRequired set to determine if we only want posts that include media and ignore posts without
-		if mediaRequired && !postEntry.HasMedia() {
-			continue
+		if daysToSubtractExponent >= maxDaysToSubtractExponent {
+			minTimestampNanos = 0 // use entire history
 		}
 
-		if onlyNFTs && !postEntry.IsNFT {
-			continue
-		}
-		if onlyPosts && postEntry.IsNFT {
-			continue
+		// For each of these pub keys, get their posts, and load them into the view too
+		for _, followedPubKey := range filteredPubKeysMap {
+
+			_, dbPostAndCommentHashes, _, err := lib.DBGetAllPostsAndCommentsForPublicKeyOrderedByTimestamp(
+				bav.Handle, fes.blockchain.Snapshot(), followedPubKey, false /*fetchEntries*/, minTimestampNanos, maxTimestampNanos,
+			)
+			if err != nil {
+				return nil, errors.Wrapf(err, "GetPostsForFollowFeedForPublicKey: Problem fetching PostEntry's from db: ")
+			}
+
+			// Iterate through the entries found in the db and force the view to load them.
+			// This fills in any gaps in the view so that, after this, the view should contain
+			// the union of what it had before plus what was in the db.
+			for _, dbPostOrCommentHash := range dbPostAndCommentHashes {
+				bav.GetPostEntryForPostHash(dbPostOrCommentHash)
+			}
 		}
 
-		if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
-			postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
+		// Iterate over the view. Put all posts authored by people you follow into an array
+		postEntriesForFollowFeed = nil
+		for _, postEntry := range bav.PostHashToPostEntry {
+			// Ignore deleted or hidden posts and any comments.
+			if postEntry.IsDeleted() || (postEntry.IsHidden && skipHidden) || len(postEntry.ParentStakeID) != 0 {
+				continue
+			}
+
+			// mediaRequired set to determine if we only want posts that include media and ignore posts without
+			if mediaRequired && !postEntry.HasMedia() {
+				continue
+			}
+
+			if onlyNFTs && !postEntry.IsNFT {
+				continue
+			}
+			if onlyPosts && postEntry.IsNFT {
+				continue
+			}
+
+			if _, isFollowedByUser := followedPubKeysMap[lib.MakePkMapKey(postEntry.PosterPublicKey)]; isFollowedByUser {
+				postEntriesForFollowFeed = append(postEntriesForFollowFeed, postEntry)
+			}
 		}
 	}
 
@@ -1673,18 +1739,14 @@ func (fes *APIServer) GetPostsForFollowFeedForPublicKey(bav *lib.UtxoView, start
 	var startIndex = 0
 	if startAfterPostHash != nil {
 		var indexOfStartAfterPostHash int
-		startPostHashFound := false
 		// Find the index of the starting post so that we can paginate the result
 		for index, postEntry := range postEntriesForFollowFeed {
 			if *postEntry.PostHash == *startAfterPostHash {
 				indexOfStartAfterPostHash = index
-				startPostHashFound = true
 				break
 			}
 		}
-		if !startPostHashFound {
-			return nil, fmt.Errorf("GetPostsForFollowFeedForPublicKey: start post hash not found in results")
-		}
+
 		// the first element of our new slice should be the element AFTER startAfterPostHash
 		startIndex = indexOfStartAfterPostHash + 1
 	}

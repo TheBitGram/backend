@@ -40,8 +40,9 @@ jobs:
       - name: Checkout core
         uses: actions/checkout@v3
         with:
-          repository: deso-protocol/core
+          repository: TheBitGram/core
           path: ./core
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_CORE }}
 
       - name: Checkout backend
         uses: actions/checkout@v3
