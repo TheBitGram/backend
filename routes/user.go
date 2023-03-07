@@ -2767,6 +2767,12 @@ func NotificationTxnShouldBeIncluded(txnMeta *lib.TransactionMetadata, filteredO
 		txnMeta.TxnType == lib.TxnTypeDAOCoinTransfer.String() ||
 		txnMeta.TxnType == lib.TxnTypeDAOCoinLimitOrder.String() {
 		return !filteredOutCategories["dao coin"]
+	} else if txnMeta.TxnType == lib.TxnTypeCreatePostAssociation.String() ||
+		txnMeta.TxnType == lib.TxnTypeDeletePostAssociation.String() {
+		return !filteredOutCategories["post association"]
+	} else if txnMeta.TxnType == lib.TxnTypeCreateUserAssociation.String() ||
+		txnMeta.TxnType == lib.TxnTypeDeleteUserAssociation.String() {
+		return !filteredOutCategories["user association"]
 	}
 	// If the transaction type doesn't fall into any of the previous steps, we don't want it
 	return false
@@ -3020,7 +3026,7 @@ func (fes *APIServer) IsFollowingPublicKey(ww http.ResponseWriter, req *http.Req
 	followEntry := utxoView.GetFollowEntryForFollowerPublicKeyCreatorPublicKey(userPublicKeyBytes, isFollowingPublicKeyBytes)
 
 	res := IsFolllowingPublicKeyResponse{
-		IsFollowing: followEntry != nil,
+		IsFollowing: followEntry != nil && !followEntry.IsDeleted(),
 	}
 
 	if err = json.NewEncoder(ww).Encode(res); err != nil {
@@ -3082,7 +3088,7 @@ func (fes *APIServer) IsHodlingPublicKey(ww http.ResponseWriter, req *http.Reque
 
 	hodlBalanceEntry, _, _ := utxoView.GetBalanceEntryForHODLerPubKeyAndCreatorPubKey(
 		userPublicKeyBytes, isHodlingPublicKeyBytes, requestData.IsDAOCoin)
-	if hodlBalanceEntry != nil {
+	if hodlBalanceEntry != nil && !hodlBalanceEntry.IsDeleted() {
 		hodlingProfileEntry := utxoView.GetProfileEntryForPublicKey(isHodlingPublicKeyBytes)
 		BalanceEntry = fes._balanceEntryToResponse(
 			hodlBalanceEntry, hodlBalanceEntry.BalanceNanos.Uint64(), hodlingProfileEntry, utxoView)
@@ -3327,7 +3333,7 @@ func (fes *APIServer) DerivedKeyEntryToUserDerivedKey(entry *lib.DerivedKeyEntry
 		IsValid:                     isValid,
 		ExtraData:                   DecodeExtraDataMap(fes.Params, utxoView, entry.ExtraData),
 		TransactionSpendingLimit:    TransactionSpendingLimitToResponse(entry.TransactionSpendingLimitTracker, utxoView, fes.Params),
-		Memo:                        hex.EncodeToString(entry.Memo),
+		Memo:                        DecodeDerivedKeyMemo(entry.Memo, fes.Params, utxoView),
 	}
 }
 

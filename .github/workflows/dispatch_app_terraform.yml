@@ -8,8 +8,8 @@ on:
         type: choice
         required: true
         options:
-          - testnet
-          - dev
+#          - testnet
+#          - dev
           - stage
       docker_tag:
         description: Docker build associated to git tag
